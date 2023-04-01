@@ -1,0 +1,16 @@
+authentication:
+  instanceHostname: "nijimiss.moe" # Hostname of the instance
+  instanceToken: ""
+
+discord:
+  targetGuild: 0 # Target guild ID
+
+options:
+  reportWatcher:
+    reportWatcherEnabled: true # Enable report watcher
+    targetReportChannel: 0 # Target report channel ID
+    silenceRoleId: "" # Silence role ID
+    excludeDiscordRoles: [ ] # ID of the Disocrd role that cannot perform the freezing operation
+
+
+debug: false
