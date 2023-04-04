@@ -47,8 +47,9 @@ data class Note(
     @get:JsonProperty("renoteId") @field:JsonProperty("renoteId")
     val renoteID: String? = null,
 
-    val mentions: List<String>? = null,
     val renote: Note? = null,
+    val poll: Poll? = null,
+    val mentions: List<String>? = null,
 
     @get:JsonProperty("channelId") @field:JsonProperty("channelId")
     val channelID: String? = null,
