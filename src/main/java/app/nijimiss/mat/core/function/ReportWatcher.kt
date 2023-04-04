@@ -291,7 +291,7 @@ class ReportWatcher(
                                     Date()
                                 ), true
                             )
-                            event.message.editMessageEmbeds(embedBuilder.build()).queue()
+                            msg.editMessageEmbeds(embedBuilder.build()).queue()
 
                             // Resolve Report
                             val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
@@ -305,7 +305,7 @@ class ReportWatcher(
                                     ).setEphemeral(true).queue()
 
                                     // Remove Buttons
-                                    event.message.editMessageComponents(listOf()).queue()
+                                    //event.message.editMessageComponents(listOf()).queue()
                                     msg.editMessageComponents(listOf()).queue()
                                 }
 
@@ -324,7 +324,7 @@ class ReportWatcher(
                                     )
 
                                     // Remove Buttons
-                                    event.message.editMessageComponents(listOf()).queue()
+                                    //event.message.editMessageComponents(listOf()).queue()
                                     msg.editMessageComponents(listOf()).queue()
                                 }
                             })
@@ -380,7 +380,7 @@ class ReportWatcher(
                             ).setEphemeral(true).queue()
 
                             // Remove buttons
-                            event.message.editMessageComponents(listOf()).queue()
+                            //event.message.editMessageComponents(listOf()).queue()
                             msg.editMessageComponents(listOf()).queue()
                         }
 
@@ -397,7 +397,7 @@ class ReportWatcher(
                                 Response Code: {}, Body: {}
                                 """.trimIndent(), response!!.statusCode, response.body
                             )
-                            event.message.editMessageComponents(listOf()).queue()
+                            //event.message.editMessageComponents(listOf()).queue()
                         }
                     })
                 }
@@ -419,7 +419,7 @@ class ReportWatcher(
                                 Registered as a duplicate report.
                                 """.trimIndent()
                             ).setEphemeral(true).queue()
-                            event.message.editMessageComponents(listOf()).queue()
+                            //event.message.editMessageComponents(listOf()).queue()
                             msg.delete().queue()
                         }
 
@@ -436,7 +436,7 @@ class ReportWatcher(
                                 Response Code: {}, Body: {}
                                 """.trimIndent(), response!!.statusCode, response.body
                             )
-                            event.message.editMessageComponents(listOf()).queue()
+                            //event.message.editMessageComponents(listOf()).queue()
                         }
                     })
                 }
@@ -458,7 +458,7 @@ class ReportWatcher(
                                 Registered as an invalid report.
                                 """.trimIndent()
                             ).setEphemeral(true).queue()
-                            event.message.editMessageComponents(listOf()).queue()
+                            //event.message.editMessageComponents(listOf()).queue()
                             msg.delete().queue()
                         }
 
@@ -475,14 +475,14 @@ class ReportWatcher(
                                 Response Code: {}, Body: {}
                                 """.trimIndent(), response!!.statusCode, response.body
                             )
-                            event.message.editMessageComponents(listOf()).queue()
+                            //event.message.editMessageComponents(listOf()).queue()
                         }
                     })
                 }
             }
 
             "cancel" -> {
-                event.message.editMessageComponents(listOf()).queue()
+                //event.message.editMessageComponents(listOf()).queue()
                 event.message.editMessage(
                     """
                     キャンセルしました。
