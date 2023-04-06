@@ -266,6 +266,7 @@ class ReportWatcher(
                     .addActionRow(
                         Button.danger("report_warning_" + event.messageId, "警告 / Warning"),
                         Button.secondary("report_duplicate_" + event.messageId, "重複 / Duplicate"),
+                        Button.primary("report_problem_" + event.messageId, "問題なし / No problem"),
                         Button.success("report_invalid_" + event.messageId, "無効 / Invalid")
                     )
                     .setEphemeral(true).queue()
@@ -421,6 +422,61 @@ class ReportWatcher(
                             ).setEphemeral(true).queue()
                             //event.message.editMessageComponents(listOf()).queue()
                             msg.delete().queue()
+                        }
+
+                        override fun onFailure(response: ApiResponse?) {
+                            event.reply(
+                                """
+                                通報のクローズに失敗しました。時間を置いて実行してください。
+                                Report close failed. Please try again later.
+                                """.trimIndent()
+                            ).setEphemeral(true).queue()
+                            MisskeyAdminTools.getInstance().moduleLogger.error(
+                                """
+                                An error occurred while closing the report.
+                                Response Code: {}, Body: {}
+                                """.trimIndent(), response!!.statusCode, response.body
+                            )
+                            //event.message.editMessageComponents(listOf()).queue()
+                        }
+                    })
+                }
+            }
+
+            "problem" -> {
+                event.channel.retrieveMessageById(processId).queue { msg: Message ->
+                    if (msg.embeds.isEmpty()) return@queue
+
+                    // Get Report ID
+                    val reportId = msg.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
+                        .toTypedArray()[1].trim { it <= ' ' }
+
+                    // Edit Report Embed
+                    val embedBuilder = EmbedBuilder(msg.embeds[0])
+                    embedBuilder.setColor(Color.getHSBColor(0.50f, 0.82f, 0.45f))
+                    embedBuilder.addField("処理 / Process", "問題なし / No problem", true)
+                    embedBuilder.addField("処理者 / Processor", event.user.asTag, true)
+                    embedBuilder.addField(
+                        "処理日時 / Processed Date", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(
+                            Date()
+                        ), true
+                    )
+                    msg.editMessageEmbeds(embedBuilder.build()).queue()
+
+                    // Resolve Report
+                    val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
+                    requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
+                        override fun onSuccess(response: ApiResponse?) {
+                            event.reply(
+                                """
+                                問題なしとして登録しました。
+                                Registered as no problem.
+                                """.trimIndent()
+                            ).setEphemeral(true).queue()
+
+                            // Remove buttons
+                            //event.message.editMessageComponents(listOf()).queue()
+                            msg.editMessageComponents(listOf()).queue()
                         }
 
                         override fun onFailure(response: ApiResponse?) {
