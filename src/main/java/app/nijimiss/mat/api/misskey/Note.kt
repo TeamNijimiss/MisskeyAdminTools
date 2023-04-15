@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 data class Note(
     val id: String? = null,
     val createdAt: String? = null,
+    val uri: String? = null,
 
     @get:JsonProperty("userId") @field:JsonProperty("userId")
     val userID: String? = null,
@@ -35,6 +36,7 @@ data class Note(
     val repliesCount: Long? = null,
     val reactions: Map<String, Int>? = null,
     val reactionEmojis: Emojis? = null,
+    val emojis: Emojis? = null,
 
     @get:JsonProperty("fileIds") @field:JsonProperty("fileIds")
     val fileIDS: List<String>? = null,
@@ -43,6 +45,7 @@ data class Note(
 
     @get:JsonProperty("replyId") @field:JsonProperty("replyId")
     val replyID: String? = null,
+    val reply: Note? = null,
 
     @get:JsonProperty("renoteId") @field:JsonProperty("renoteId")
     val renoteID: String? = null,
