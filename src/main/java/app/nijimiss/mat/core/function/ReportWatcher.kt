@@ -44,10 +44,12 @@ import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
+import java.util.regex.Pattern
 
 class ReportWatcher(
     private val systemStore: MATSystemDataStore,
     private val requestManager: ApiRequestManager,
+    private val warningSender: WarningSender,
     private val token: String,
     private val silenceRoleId: String,
     private val targetReportChannel: Long,
@@ -94,6 +96,8 @@ class ReportWatcher(
                     if (sinceId == null) Collections.reverse(reports) // 実質的には不変ではない
 
                     for (report in reports) {
+                        val reportNotes = if (report.comment != null) NOTE_URL_PATTERN.matcher(report.comment) else null
+
                         val embedBuilder = EmbedBuilder()
                         embedBuilder.setTitle("通報 / Report")
                         embedBuilder.setColor(Color.getHSBColor(0.03f, 0.39f, 0.49f))
@@ -117,6 +121,11 @@ class ReportWatcher(
                         )?.let {
                             embedBuilder.addField(
                                 "通報された日時 / Reported Date", it, true
+                            )
+                        }
+                        for (noteInfo in reportNotes!!.results()) {
+                            embedBuilder.addField(
+                                "通報された投稿 / Reported Note", noteInfo.group(2), true
                             )
                         }
                         embedBuilder.setFooter("通報 ID: " + report.id)
@@ -158,6 +167,8 @@ class ReportWatcher(
             return
         val processId = args[2] // report target user id or report embed message id
         val action = args[1]
+        val extendInfo = if (args.size > 3) args.copyOfRange(3, args.size) else null
+
         when (action) {
             "freeze" -> {
                 if (excludeRoleId.stream().anyMatch { o: Long ->
@@ -180,7 +191,7 @@ class ReportWatcher(
                     """.trimIndent()
                 )
                     .addActionRow(
-                        Button.danger("report_confirm_" + event.messageId, "凍結 / Freeze"),
+                        Button.danger("report_confirm_" + processId + "_" + event.messageId, "凍結 / Freeze"),
                         Button.secondary("report_cancel_" + event.messageId, "キャンセル / Cancel")
                     ).setEphemeral(true).queue()
             }
@@ -227,6 +238,7 @@ class ReportWatcher(
                                     Report close failed. The silence process has been completed. Please close the report manually.
                                     """.trimIndent()
                                 ).setEphemeral(true).queue()
+
                                 MisskeyAdminTools.getInstance().moduleLogger.error(
                                     """
                                     An error occurred while closing the report.
@@ -246,6 +258,7 @@ class ReportWatcher(
                             Failed to silence the user. Please try again later.
                             """.trimIndent()
                         ).setEphemeral(true).queue()
+
                         MisskeyAdminTools.getInstance().moduleLogger.error(
                             """
                             An error occurred while silencing the user.
@@ -266,6 +279,7 @@ class ReportWatcher(
                     .addActionRow(
                         Button.danger("report_warning_" + event.messageId, "警告 / Warning"),
                         Button.secondary("report_duplicate_" + event.messageId, "重複 / Duplicate"),
+                        Button.secondary("report_done_" + event.messageId, "手動にて対応済み / Done manually"),
                         Button.primary("report_problem_" + event.messageId, "問題なし / No problem"),
                         Button.success("report_invalid_" + event.messageId, "無効 / Invalid")
                     )
@@ -273,17 +287,17 @@ class ReportWatcher(
             }
 
             "confirm" -> {
-                event.channel.retrieveMessageById(processId).queue { msg: Message ->
+                event.channel.retrieveMessageById(extendInfo?.get(0) ?: processId).queue { msg: Message ->
                     if (msg.embeds.isEmpty()) return@queue
 
                     val reportId =
-                        event.message.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
+                        msg.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
                             .toTypedArray()[1].trim { it <= ' ' }
                     val suspendUser = SuspendUser(token, processId)
                     requestManager.addRequest(suspendUser, object : ApiResponseHandler {
                         override fun onSuccess(response: ApiResponse?) {
                             // Edit Report Embed
-                            val embedBuilder = EmbedBuilder(event.message.embeds[0])
+                            val embedBuilder = EmbedBuilder(msg.embeds[0])
                             embedBuilder.setColor(Color.getHSBColor(0.50f, 0.82f, 0.45f))
                             embedBuilder.addField("処理 / Process", "凍結 / Freeze", true)
                             embedBuilder.addField("処理者 / Processor", event.user.asTag, true)
@@ -317,6 +331,7 @@ class ReportWatcher(
                                         Report close failed. The freeze process has been completed. Please close the report manually.
                                         """.trimIndent()
                                     ).setEphemeral(true).queue()
+
                                     MisskeyAdminTools.getInstance().moduleLogger.error(
                                         """
                                         An error occurred while closing the report.
@@ -338,6 +353,7 @@ class ReportWatcher(
                                 Failed to freeze the user. Please try again later.
                                 """.trimIndent()
                             ).setEphemeral(true).queue()
+
                             MisskeyAdminTools.getInstance().moduleLogger.error(
                                 """
                                 An error occurred while freezing the user.
@@ -353,54 +369,23 @@ class ReportWatcher(
                 event.channel.retrieveMessageById(processId).queue { msg: Message ->
                     if (msg.embeds.isEmpty()) return@queue
 
-                    // Get Report ID
+                    // Resolve Report
                     val reportId = msg.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
                         .toTypedArray()[1].trim { it <= ' ' }
 
-                    // Edit Report Embed
-                    val embedBuilder = EmbedBuilder(msg.embeds[0])
-                    embedBuilder.setColor(Color.getHSBColor(0.50f, 0.82f, 0.45f))
-                    embedBuilder.addField("処理 / Process", "警告 / Warning", true)
-                    embedBuilder.addField("処理者 / Processor", event.user.asTag, true)
-                    embedBuilder.addField(
-                        "処理日時 / Processed Date", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(
-                            Date()
-                        ), true
-                    )
-                    msg.editMessageEmbeds(embedBuilder.build()).queue()
+                    val targetUserId =
+                        msg.embeds[0].fields[1].value!!.trim { it <= ' ' }
 
-                    // Resolve Report
-                    val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
-                    requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
-                        override fun onSuccess(response: ApiResponse?) {
-                            event.reply(
-                                """
-                                警告済みとして登録しました。
-                                Registered as a warning.
-                                """.trimIndent()
-                            ).setEphemeral(true).queue()
+                    /* todo 通報された投稿を取得する 実装前のEmbedで取得できないため互換性保持のために本文から再度パースするコードを追加している。
+                    val targetNotes = msg.embeds[0].fields.filter { it.name == "通報された投稿 / Reported Note" }
+                        .mapNotNull { it.value }
+                        .toList()
+                     */
 
-                            // Remove buttons
-                            //event.message.editMessageComponents(listOf()).queue()
-                            msg.editMessageComponents(listOf()).queue()
-                        }
+                    val targetNotes = NOTE_URL_PATTERN.matcher(msg.embeds[0].description).results().map { it.group(2) }
+                        .filter(String::isNotBlank).toList()
 
-                        override fun onFailure(response: ApiResponse?) {
-                            event.reply(
-                                """
-                                通報のクローズに失敗しました。時間を置いて実行してください。
-                                Report close failed. Please try again later.
-                                """.trimIndent()
-                            ).setEphemeral(true).queue()
-                            MisskeyAdminTools.getInstance().moduleLogger.error(
-                                """
-                                An error occurred while closing the report.
-                                Response Code: {}, Body: {}
-                                """.trimIndent(), response!!.statusCode, response.body
-                            )
-                            //event.message.editMessageComponents(listOf()).queue()
-                        }
-                    })
+                    warningSender.sendWarning(ReportContext(reportId, event, msg.id, targetUserId, targetNotes))
                 }
             }
 
@@ -431,6 +416,63 @@ class ReportWatcher(
                                 Report close failed. Please try again later.
                                 """.trimIndent()
                             ).setEphemeral(true).queue()
+
+                            MisskeyAdminTools.getInstance().moduleLogger.error(
+                                """
+                                An error occurred while closing the report.
+                                Response Code: {}, Body: {}
+                                """.trimIndent(), response!!.statusCode, response.body
+                            )
+                            //event.message.editMessageComponents(listOf()).queue()
+                        }
+                    })
+                }
+            }
+
+            "done" -> {
+                event.channel.retrieveMessageById(processId).queue { msg: Message ->
+                    if (msg.embeds.isEmpty()) return@queue
+
+                    // Get Report ID
+                    val reportId = msg.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
+                        .toTypedArray()[1].trim { it <= ' ' }
+
+                    // Edit Report Embed
+                    val embedBuilder = EmbedBuilder(msg.embeds[0])
+                    embedBuilder.setColor(Color.getHSBColor(0.50f, 0.82f, 0.45f))
+                    embedBuilder.addField("処理 / Process", "手動にて対応済み / Done manually", true)
+                    embedBuilder.addField("処理者 / Processor", event.user.asTag, true)
+                    embedBuilder.addField(
+                        "処理日時 / Processed Date", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(
+                            Date()
+                        ), true
+                    )
+                    msg.editMessageEmbeds(embedBuilder.build()).queue()
+
+                    // Resolve Report
+                    val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
+                    requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
+                        override fun onSuccess(response: ApiResponse?) {
+                            event.reply(
+                                """
+                                手動にて対応済みとして登録しました。
+                                Registered as done manually.
+                                """.trimIndent()
+                            ).setEphemeral(true).queue()
+
+                            // Remove buttons
+                            //event.message.editMessageComponents(listOf()).queue()
+                            msg.editMessageComponents(listOf()).queue()
+                        }
+
+                        override fun onFailure(response: ApiResponse?) {
+                            event.reply(
+                                """
+                                通報のクローズに失敗しました。時間を置いて実行してください。
+                                Report close failed. Please try again later.
+                                """.trimIndent()
+                            ).setEphemeral(true).queue()
+
                             MisskeyAdminTools.getInstance().moduleLogger.error(
                                 """
                                 An error occurred while closing the report.
@@ -486,6 +528,7 @@ class ReportWatcher(
                                 Report close failed. Please try again later.
                                 """.trimIndent()
                             ).setEphemeral(true).queue()
+
                             MisskeyAdminTools.getInstance().moduleLogger.error(
                                 """
                                 An error occurred while closing the report.
@@ -525,6 +568,7 @@ class ReportWatcher(
                                 Report close failed. Please try again later.
                                 """.trimIndent()
                             ).setEphemeral(true).queue()
+
                             MisskeyAdminTools.getInstance().moduleLogger.error(
                                 """
                                 An error occurred while closing the report.
@@ -555,5 +599,7 @@ class ReportWatcher(
 
     companion object {
         private val MAPPER = ObjectMapper()
+        private val NOTE_URL_PATTERN =
+            Pattern.compile("https://([a-zA-Z0-9]+\\.[a-zA-Z0-9]+)/notes/([a-zA-Z0-9]+)")
     }
 }

@@ -18,6 +18,7 @@ package app.nijimiss.mat;
 
 import app.nijimiss.mat.core.database.MATSystemDataStore;
 import app.nijimiss.mat.core.function.ReportWatcher;
+import app.nijimiss.mat.core.function.WarningSender;
 import app.nijimiss.mat.core.requests.ApiRequestManager;
 import net.dv8tion.jda.api.JDA;
 import page.nafuchoco.neobot.api.ConfigLoader;
@@ -72,6 +73,10 @@ public class MisskeyAdminTools extends NeoModule {
         if (config.getOptions().getReportWatcher().getEnabled())
             reportWatcher = new ReportWatcher(systemDataStore,
                     apiRequestManager,
+                    new WarningSender(config.getAuthentication().getInstanceToken(),
+                            apiRequestManager,
+                            config.getOptions().getReportWatcher().getWarningSender().getWarningTemplate(),
+                            config.getOptions().getReportWatcher().getWarningSender().getWarningItems()),
                     config.getAuthentication().getInstanceToken(),
                     config.getOptions().getReportWatcher().getSilenceRoleId(),
                     config.getOptions().getReportWatcher().getTargetReportChannel(),

@@ -47,4 +47,10 @@ data class ReportWatcherOptions(
     val targetReportChannel: Long? = null,
     val silenceRoleId: String? = null,
     val excludeDiscordRoles: List<Long>? = null,
+    val warningSender: WarningSenderOptions? = null,
+)
+
+data class WarningSenderOptions(
+    val warningTemplate: String? = null,
+    val warningItems: List<String>? = null,
 )
