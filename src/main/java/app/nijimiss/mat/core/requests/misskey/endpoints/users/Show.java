@@ -21,11 +21,6 @@ import org.jetbrains.annotations.NotNull;
 
 public class Show extends RequireCredentialRequest {
 
-    public enum SearchType {
-        ID,
-        USERNAME
-    }
-
     public Show(String credential, String search, SearchType type) {
         super(credential);
         switch (type) {
@@ -43,5 +38,10 @@ public class Show extends RequireCredentialRequest {
     @Override
     public int getSuccessCode() {
         return 200;
+    }
+
+    public enum SearchType {
+        ID,
+        USERNAME
     }
 }
