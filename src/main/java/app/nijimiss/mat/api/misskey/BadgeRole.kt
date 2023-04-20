@@ -22,5 +22,6 @@ data class BadgeRole(
     val name: String? = null,
 
     @get:JsonProperty("iconUrl") @field:JsonProperty("iconUrl")
-    val iconURL: String? = null
+    val iconURL: String? = null,
+    val displayOrder: Int? = null
 )
