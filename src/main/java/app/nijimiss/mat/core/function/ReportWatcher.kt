@@ -309,15 +309,16 @@ class ReportWatcher(
                             msg.editMessageEmbeds(embedBuilder.build()).queue()
 
                             // Resolve Report
+                            event.deferReply(true).queue() // 処理に3秒以上かかる場合、Discord側でエラーが発生するため、応答を遅らせる
                             val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
                             requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
                                 override fun onSuccess(response: ApiResponse?) {
-                                    event.reply(
+                                    event.hook.sendMessage(
                                         """
                                         凍結済みとして登録しました。
                                         The user has been registered as a frozen.
                                         """.trimIndent()
-                                    ).setEphemeral(true).queue()
+                                    ).queue()
 
                                     // Remove Buttons
                                     //event.message.editMessageComponents(listOf()).queue()
@@ -325,12 +326,12 @@ class ReportWatcher(
                                 }
 
                                 override fun onFailure(response: ApiResponse?) {
-                                    event.reply(
+                                    event.hook.sendMessage(
                                         """
                                         通報のクローズに失敗しました。凍結処理は完了しています。手動で通報をクローズしてください。
                                         Report close failed. The freeze process has been completed. Please close the report manually.
                                         """.trimIndent()
-                                    ).setEphemeral(true).queue()
+                                    ).queue()
 
                                     MisskeyAdminTools.getInstance().moduleLogger.error(
                                         """

@@ -62,7 +62,7 @@ class WarningSender(
                 warningItem, warningItem
             )
         })
-        context.event.reply(
+        context.event.hook.sendMessage(
             """
                 ユーザーに警告を送信します。警告の理由をリストから選択してください。
                 Send a warning to the user. Select the reason for the warning from the list.
@@ -146,13 +146,15 @@ class WarningSender(
             "confirm" -> {
                 val context = warningContexts[processId] ?: return
 
+                event.deferReply(true).queue() // 処理に3秒以上かかる場合、Discord側でエラーが発生するため、応答を遅らせる
+
                 val userShow = Show(token, context.reportTargetUsername, Show.SearchType.USERNAME)
                 requestManager.addRequest(userShow, object : ApiResponseHandler {
                     override fun onSuccess(response: ApiResponse?) {
                         val user = MAPPER.readValue(response!!.body, FullUser::class.java)
 
                         if (user == null) {
-                            event.reply("ユーザーが見つかりませんでした。 / User not found.").setEphemeral(true).queue()
+                            event.hook.sendMessage("ユーザーが見つかりませんでした。 / User not found.").queue()
                             return
                         }
 
@@ -200,12 +202,12 @@ class WarningSender(
                                     val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
                                     requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
                                         override fun onSuccess(response: ApiResponse?) {
-                                            event.reply(
+                                            event.hook.sendMessage(
                                                 """
                                                 警告を送信し、警告済みとして登録しました。
                                                 Warning sent and registered as warned.
                                                 """.trimIndent()
-                                            ).setEphemeral(true).queue()
+                                            ).queue()
 
                                             // Remove buttons
                                             //event.message.editMessageComponents(listOf()).queue()
@@ -213,12 +215,12 @@ class WarningSender(
                                         }
 
                                         override fun onFailure(response: ApiResponse?) {
-                                            event.reply(
+                                            event.hook.sendMessage(
                                                 """
                                                 通報のクローズに失敗しました。時間を置いて実行してください。
                                                 Report close failed. Please try again later.
                                                 """.trimIndent()
-                                            ).setEphemeral(true).queue()
+                                            ).queue()
 
                                             MisskeyAdminTools.getInstance().moduleLogger.error(
                                                 """
@@ -232,12 +234,12 @@ class WarningSender(
                             }
 
                             override fun onFailure(response: ApiResponse?) {
-                                event.reply(
+                                event.hook.sendMessage(
                                     """
                                     警告の送信に失敗しました。時間を置いて実行してください。
                                     Warning sending failed. Please try again later.
                                     """.trimIndent()
-                                ).setEphemeral(true).queue()
+                                ).queue()
 
                                 MisskeyAdminTools.getInstance().moduleLogger.error(
                                     """
@@ -250,12 +252,12 @@ class WarningSender(
                     }
 
                     override fun onFailure(response: ApiResponse?) {
-                        event.reply(
+                        event.hook.sendMessage(
                             """
                             警告対象のユーザーの検索に失敗しました。時間を置いて実行してください。
                             Failed to search for the warning target user. Please try again later.
                             """.trimIndent()
-                        ).setEphemeral(true).queue()
+                        ).queue()
 
                         MisskeyAdminTools.getInstance().moduleLogger.error(
                             """
