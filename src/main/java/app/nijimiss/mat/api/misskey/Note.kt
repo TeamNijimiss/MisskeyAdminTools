@@ -22,6 +22,7 @@ data class Note(
     val id: String? = null,
     val createdAt: String? = null,
     val uri: String? = null,
+    val url: String? = null,
 
     @get:JsonProperty("userId") @field:JsonProperty("userId")
     val userID: String? = null,
