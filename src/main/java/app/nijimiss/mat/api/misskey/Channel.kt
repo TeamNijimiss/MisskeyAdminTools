@@ -18,5 +18,6 @@ package app.nijimiss.mat.api.misskey
 
 data class Channel(
     val id: String? = null,
-    val name: String? = null
+    val name: String? = null,
+    val color: String? = null
 )
