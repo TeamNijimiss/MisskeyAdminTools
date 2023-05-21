@@ -584,12 +584,12 @@ class ReportWatcher(
 
             "cancel" -> {
                 //event.message.editMessageComponents(listOf()).queue()
-                event.message.editMessage(
+                event.reply(
                     """
                     キャンセルしました。
                     Canceled.
                     """.trimIndent()
-                ).queue()
+                ).setEphemeral(true).queue()
             }
 
             else -> {
