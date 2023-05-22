@@ -16,7 +16,6 @@
 package app.nijimiss.mat.core.requests
 
 import app.nijimiss.mat.MisskeyAdminTools
-import com.fasterxml.jackson.databind.ObjectMapper
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -106,6 +105,5 @@ class ApiRequestManager(apiHostName: String) {
 
     companion object {
         private val MEDIA_TYPE_JSON: MediaType = "application/json; charset=utf-8".toMediaType()
-        private val JSON_MAPPER = ObjectMapper()
     }
 }
