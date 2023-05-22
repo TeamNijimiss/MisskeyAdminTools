@@ -254,7 +254,7 @@ class ReportWatcher(
                                         "closure_cancel_${event.message.id}",
                                         "いいえ / No"
                                     )
-                                ).queue()
+                                ).setEphemeral(true).queue()
                             }
 
                             override fun onFailure(response: ApiResponse?) {
@@ -364,7 +364,7 @@ class ReportWatcher(
                                             "closure_cancel_${msg.id}",
                                             "いいえ / No"
                                         )
-                                    ).queue()
+                                    ).setEphemeral(true).queue()
                                 }
 
                                 override fun onFailure(response: ApiResponse?) {
