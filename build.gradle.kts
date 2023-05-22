@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "app.nijimiss"
-version = "0.3.2"
+version = "0.4.0"
 
 tasks {
     named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
