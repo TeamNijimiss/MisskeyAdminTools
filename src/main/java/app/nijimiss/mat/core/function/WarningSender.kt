@@ -54,7 +54,7 @@ class WarningSender(
         MisskeyAdminTools.getInstance().jda.addEventListener(this)
     }
 
-    fun sendWarning(context: ReportContext) {
+    fun sendWarning(event: ButtonInteractionEvent, context: ReportContext) {
         val builder = StringSelectMenu.create("warning_reason_" + context.messageId)
         builder.setPlaceholder("警告の理由を選択します。 / Select a reason for the warning.")
         warningItems.forEach(Consumer { warningItem: String ->
@@ -62,7 +62,7 @@ class WarningSender(
                 warningItem, warningItem
             )
         })
-        context.event.reply(
+        event.reply(
             """
                 ユーザーに警告を送信します。警告の理由をリストから選択してください。
                 Send a warning to the user. Select the reason for the warning from the list.
@@ -94,7 +94,7 @@ class WarningSender(
                 embedBuilder.setDescription(warningMessage)
                 embedBuilder.addField(
                     "対象のユーザー / Target user",
-                    reportContext.reportTargetUsername,
+                    reportContext.reportTargetUserId,
                     false
                 )
                 reportContext.reportTargetNoteIds.forEach { noteId ->
@@ -122,7 +122,7 @@ class WarningSender(
 
                 warningContexts[processId] = ReportWarningContext(
                     reportContext.reportId,
-                    reportContext.reportTargetUsername,
+                    reportContext.reportTargetUserId,
                     reportContext.reportTargetNoteIds,
                     warningMessage
                 )
@@ -148,7 +148,12 @@ class WarningSender(
 
                 event.deferReply(true).queue() // 処理に3秒以上かかる場合、Discord側でエラーが発生するため、応答を遅らせる
 
-                val userShow = Show(token, context.reportTargetUsername, Show.SearchType.USERNAME)
+                // TODO: 古い形式への互換性のためのコード
+                val ulidRegex = Regex("[0-9A-Z]{26}")
+                val searchType =
+                    if (ulidRegex.matches(context.reportId)) Show.SearchType.ID else Show.SearchType.USERNAME
+
+                val userShow = Show(token, context.reportTargetUsername, searchType)
                 requestManager.addRequest(userShow, object : ApiResponseHandler {
                     override fun onSuccess(response: ApiResponse?) {
                         val user = MAPPER.readValue(response!!.body, FullUser::class.java)
@@ -212,6 +217,22 @@ class WarningSender(
                                             // Remove buttons
                                             //event.message.editMessageComponents(listOf()).queue()
                                             msg.editMessageComponents(listOf()).queue()
+
+                                            event.hook.sendMessage(
+                                                """
+                                                同一の投稿に関する通報を自動的にクローズしますか？
+                                                Do you want to automatically close the report on the same post?
+                                                """.trimIndent()
+                                            ).addActionRow(
+                                                Button.success(
+                                                    "closure_close_$processId",
+                                                    "はい / Yes"
+                                                ),
+                                                Button.secondary(
+                                                    "closure_cancel_$processId",
+                                                    "いいえ / No"
+                                                )
+                                            ).queue()
                                         }
 
                                         override fun onFailure(response: ApiResponse?) {

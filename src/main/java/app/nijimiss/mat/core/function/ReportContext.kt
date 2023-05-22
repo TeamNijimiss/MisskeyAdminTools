@@ -15,12 +15,9 @@
  */
 package app.nijimiss.mat.core.function
 
-import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
-
 data class ReportContext(
     val reportId: String,
-    val event: ButtonInteractionEvent,
     val messageId: String,
-    val reportTargetUsername: String,
+    val reportTargetUserId: String,
     val reportTargetNoteIds: List<String>
 )

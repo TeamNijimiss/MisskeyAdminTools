@@ -18,6 +18,7 @@ package app.nijimiss.mat.core.function
 import app.nijimiss.mat.MisskeyAdminTools
 import app.nijimiss.mat.api.misskey.admin.Report
 import app.nijimiss.mat.core.database.MATSystemDataStore
+import app.nijimiss.mat.core.database.ReportsStore
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
@@ -48,6 +49,7 @@ import java.util.regex.Pattern
 
 class ReportWatcher(
     private val systemStore: MATSystemDataStore,
+    private val reportStore: ReportsStore,
     private val requestManager: ApiRequestManager,
     private val warningSender: WarningSender,
     private val token: String,
@@ -55,16 +57,15 @@ class ReportWatcher(
     private val targetReportChannel: Long,
     excludeRoleId: List<Long>?
 ) : ListenerAdapter() {
-    private val logger: NeoModuleLogger
+    private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
+    private val discordApi: JDA = MisskeyAdminTools.getInstance().jda
     private val executorService: ScheduledExecutorService
-    private val discordApi: JDA
     private val excludeRoleId: List<Long>
 
     init {
-        logger = MisskeyAdminTools.getInstance().moduleLogger
-        discordApi = MisskeyAdminTools.getInstance().jda
         this.excludeRoleId = excludeRoleId ?: emptyList()
         discordApi.addEventListener(this) // Add Button Interaction Listener
+        discordApi.addEventListener(AutoClosure(token, requestManager, reportStore)) // Add Auto Closure
         executorService = Executors.newSingleThreadScheduledExecutor()
         executorService.scheduleAtFixedRate({ execute() }, 0, 5, TimeUnit.MINUTES)
     }
@@ -136,7 +137,16 @@ class ReportWatcher(
                         )
                         discordApi.getTextChannelById(targetReportChannel)
                             ?.sendMessageEmbeds(embedBuilder.build())
-                            ?.addActionRow(controlButtons)?.queue()
+                            ?.addActionRow(controlButtons)?.queue { result ->
+                                val messageId = result.id
+                                val reportContext = ReportContext(
+                                    report.id!!,
+                                    messageId,
+                                    report.targetUserID!!,
+                                    reportNotes.results().map { it.group(2) }.toList()
+                                )
+                                reportStore.addReport(reportContext)
+                            }
                     }
                     if (reports.isNotEmpty()) systemStore.setOption("lastCheckedReport", reports[reports.size - 1].id)
                 } catch (e: JsonProcessingException) {
@@ -229,6 +239,22 @@ class ReportWatcher(
                                 ).setEphemeral(true).queue()
                                 // Remove Buttons
                                 event.message.editMessageComponents(listOf()).queue()
+
+                                event.hook.sendMessage(
+                                    """
+                                    同一の投稿に関する通報を自動的にクローズしますか？
+                                    Do you want to automatically close the report on the same post?
+                                    """.trimIndent()
+                                ).addActionRow(
+                                    Button.success(
+                                        "closure_close_${event.message.id}",
+                                        "はい / Yes"
+                                    ),
+                                    Button.secondary(
+                                        "closure_cancel_${event.message.id}",
+                                        "いいえ / No"
+                                    )
+                                ).queue()
                             }
 
                             override fun onFailure(response: ApiResponse?) {
@@ -323,6 +349,22 @@ class ReportWatcher(
                                     // Remove Buttons
                                     //event.message.editMessageComponents(listOf()).queue()
                                     msg.editMessageComponents(listOf()).queue()
+
+                                    event.hook.sendMessage(
+                                        """
+                                        同一の投稿に関する通報を自動的にクローズしますか？
+                                        Do you want to automatically close the report on the same post?
+                                        """.trimIndent()
+                                    ).addActionRow(
+                                        Button.success(
+                                            "closure_close_${msg.id}",
+                                            "はい / Yes"
+                                        ),
+                                        Button.secondary(
+                                            "closure_cancel_${msg.id}",
+                                            "いいえ / No"
+                                        )
+                                    ).queue()
                                 }
 
                                 override fun onFailure(response: ApiResponse?) {
@@ -386,7 +428,14 @@ class ReportWatcher(
                     val targetNotes = NOTE_URL_PATTERN.matcher(msg.embeds[0].description).results().map { it.group(2) }
                         .filter(String::isNotBlank).toList()
 
-                    warningSender.sendWarning(ReportContext(reportId, event, msg.id, targetUserId, targetNotes))
+                    // SQLから通報情報を取得する。SQLにデータがない場合は旧来の方法で生成する。
+                    val context = reportStore.getReport(msg.idLong) ?: ReportContext(
+                        reportId,
+                        msg.id,
+                        targetUserId,
+                        targetNotes
+                    )
+                    warningSender.sendWarning(event, context)
                 }
             }
 
@@ -407,7 +456,9 @@ class ReportWatcher(
                                 """.trimIndent()
                             ).setEphemeral(true).queue()
                             //event.message.editMessageComponents(listOf()).queue()
-                            msg.delete().queue()
+                            msg.delete().queue {
+                                reportStore.removeReport(msg.idLong)
+                            }
                         }
 
                         override fun onFailure(response: ApiResponse?) {
@@ -463,7 +514,9 @@ class ReportWatcher(
 
                             // Remove buttons
                             //event.message.editMessageComponents(listOf()).queue()
-                            msg.editMessageComponents(listOf()).queue()
+                            msg.editMessageComponents(listOf()).queue {
+                                reportStore.removeReport(msg.idLong)
+                            }
                         }
 
                         override fun onFailure(response: ApiResponse?) {
@@ -519,7 +572,9 @@ class ReportWatcher(
 
                             // Remove buttons
                             //event.message.editMessageComponents(listOf()).queue()
-                            msg.editMessageComponents(listOf()).queue()
+                            msg.editMessageComponents(listOf()).queue {
+                                reportStore.removeReport(msg.idLong)
+                            }
                         }
 
                         override fun onFailure(response: ApiResponse?) {
@@ -559,7 +614,9 @@ class ReportWatcher(
                                 """.trimIndent()
                             ).setEphemeral(true).queue()
                             //event.message.editMessageComponents(listOf()).queue()
-                            msg.delete().queue()
+                            msg.delete().queue {
+                                reportStore.removeReport(msg.idLong)
+                            }
                         }
 
                         override fun onFailure(response: ApiResponse?) {
