@@ -50,6 +50,7 @@ data class File(
 ) {
     data class Properties(
         val width: Long? = null,
-        val height: Long? = null
+        val height: Long? = null,
+        val avgColor: String? = null
     )
 }
