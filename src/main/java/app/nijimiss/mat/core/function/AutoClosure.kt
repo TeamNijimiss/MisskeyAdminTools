@@ -31,8 +31,6 @@ class AutoClosure(
 ) : ListenerAdapter() {
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
-        event.deferReply(true).queue()
-
         val args = event.componentId.split("_".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
         // closure_close_1234567890: args[0] = "closure", args[1] = action, args[2] = processId
 
@@ -42,6 +40,8 @@ class AutoClosure(
         val processId = args[2] // report embed message id
         val action = args[1]
         val extendInfo = if (args.size > 3) args.copyOfRange(3, args.size) else null
+
+        event.deferReply(true).queue()
 
         when (action) {
             "close" -> {
@@ -58,8 +58,16 @@ class AutoClosure(
                     }
 
                     reportsStore.getMessages(report.reportTargetNoteIds[0]).let { messages ->
-                        if (messages.isEmpty())
+                        if (messages.isEmpty()) {
+                            event.hook.sendMessage(
+                                """
+                                クローズ可能な通報が見つかりませんでした。
+                                No closable reports were found.
+                                """.trimIndent()
+                            ).queue()
+
                             return // If the message is not found, return
+                        }
 
                         messages.forEach { id ->
                             event.channel.retrieveMessageById(id).queue { message ->

@@ -98,6 +98,7 @@ class ReportWatcher(
 
                     for (report in reports) {
                         val reportNotes = if (report.comment != null) NOTE_URL_PATTERN.matcher(report.comment) else null
+                        val noteIds = reportNotes!!.results().map { it.group(2) }.toList()
 
                         val embedBuilder = EmbedBuilder()
                         embedBuilder.setTitle("通報 / Report")
@@ -124,9 +125,9 @@ class ReportWatcher(
                                 "通報された日時 / Reported Date", it, true
                             )
                         }
-                        for (noteInfo in reportNotes!!.results()) {
+                        for (noteInfo in noteIds) {
                             embedBuilder.addField(
-                                "通報された投稿 / Reported Note", noteInfo.group(2), true
+                                "通報された投稿 / Reported Note", noteInfo, true
                             )
                         }
                         embedBuilder.setFooter("通報 ID: " + report.id)
@@ -138,14 +139,21 @@ class ReportWatcher(
                         discordApi.getTextChannelById(targetReportChannel)
                             ?.sendMessageEmbeds(embedBuilder.build())
                             ?.addActionRow(controlButtons)?.queue { result ->
+                                logger.debug("Report message sent. ID: " + result.id)
                                 val messageId = result.id
                                 val reportContext = ReportContext(
                                     report.id!!,
                                     messageId,
                                     report.targetUserID!!,
-                                    reportNotes.results().map { it.group(2) }.toList()
+                                    noteIds
                                 )
-                                reportStore.addReport(reportContext)
+                                try {
+                                    reportStore.addReport(reportContext)
+                                } catch (e: SQLException) {
+                                    MisskeyAdminTools.getInstance().moduleLogger.error(
+                                        "An error occurred while adding the report.", e
+                                    )
+                                }
                             }
                     }
                     if (reports.isNotEmpty()) systemStore.setOption("lastCheckedReport", reports[reports.size - 1].id)
@@ -238,7 +246,7 @@ class ReportWatcher(
                                     """.trimIndent()
                                 ).setEphemeral(true).queue()
                                 // Remove Buttons
-                                event.message.editMessageComponents(listOf()).queue()
+                                event.message.editMessageComponents().queue()
 
                                 event.hook.sendMessage(
                                     """
@@ -272,7 +280,7 @@ class ReportWatcher(
                                     """.trimIndent(), response!!.statusCode, response.body
                                 )
                                 // Remove Buttons
-                                event.message.editMessageComponents(listOf()).queue()
+                                event.message.editMessageComponents().queue()
                             }
                         })
                     }
@@ -347,8 +355,7 @@ class ReportWatcher(
                                     ).queue()
 
                                     // Remove Buttons
-                                    //event.message.editMessageComponents(listOf()).queue()
-                                    msg.editMessageComponents(listOf()).queue()
+                                    msg.editMessageComponents().queue()
 
                                     event.hook.sendMessage(
                                         """
@@ -383,8 +390,7 @@ class ReportWatcher(
                                     )
 
                                     // Remove Buttons
-                                    //event.message.editMessageComponents(listOf()).queue()
-                                    msg.editMessageComponents(listOf()).queue()
+                                    msg.editMessageComponents().queue()
                                 }
                             })
                         }
@@ -455,7 +461,6 @@ class ReportWatcher(
                                 Registered as a duplicate report.
                                 """.trimIndent()
                             ).setEphemeral(true).queue()
-                            //event.message.editMessageComponents(listOf()).queue()
                             msg.delete().queue {
                                 reportStore.removeReport(msg.idLong)
                             }
@@ -475,7 +480,6 @@ class ReportWatcher(
                                 Response Code: {}, Body: {}
                                 """.trimIndent(), response!!.statusCode, response.body
                             )
-                            //event.message.editMessageComponents(listOf()).queue()
                         }
                     })
                 }
@@ -513,8 +517,7 @@ class ReportWatcher(
                             ).setEphemeral(true).queue()
 
                             // Remove buttons
-                            //event.message.editMessageComponents(listOf()).queue()
-                            msg.editMessageComponents(listOf()).queue {
+                            msg.editMessageComponents().queue {
                                 reportStore.removeReport(msg.idLong)
                             }
                         }
@@ -533,7 +536,6 @@ class ReportWatcher(
                                 Response Code: {}, Body: {}
                                 """.trimIndent(), response!!.statusCode, response.body
                             )
-                            //event.message.editMessageComponents(listOf()).queue()
                         }
                     })
                 }
@@ -571,8 +573,7 @@ class ReportWatcher(
                             ).setEphemeral(true).queue()
 
                             // Remove buttons
-                            //event.message.editMessageComponents(listOf()).queue()
-                            msg.editMessageComponents(listOf()).queue {
+                            msg.editMessageComponents().queue {
                                 reportStore.removeReport(msg.idLong)
                             }
                         }
@@ -591,7 +592,6 @@ class ReportWatcher(
                                 Response Code: {}, Body: {}
                                 """.trimIndent(), response!!.statusCode, response.body
                             )
-                            //event.message.editMessageComponents(listOf()).queue()
                         }
                     })
                 }
@@ -613,7 +613,6 @@ class ReportWatcher(
                                 Registered as an invalid report.
                                 """.trimIndent()
                             ).setEphemeral(true).queue()
-                            //event.message.editMessageComponents(listOf()).queue()
                             msg.delete().queue {
                                 reportStore.removeReport(msg.idLong)
                             }
@@ -633,14 +632,12 @@ class ReportWatcher(
                                 Response Code: {}, Body: {}
                                 """.trimIndent(), response!!.statusCode, response.body
                             )
-                            //event.message.editMessageComponents(listOf()).queue()
                         }
                     })
                 }
             }
 
             "cancel" -> {
-                //event.message.editMessageComponents(listOf()).queue()
                 event.reply(
                     """
                     キャンセルしました。

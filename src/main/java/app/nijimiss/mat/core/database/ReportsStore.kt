@@ -21,6 +21,7 @@ import page.nafuchoco.neobot.api.DatabaseConnector
 import java.sql.SQLException
 
 class ReportsStore(connector: DatabaseConnector) : DatabaseTable(connector, "reports") {
+
     @Throws(SQLException::class)
     fun createTable() {
         super.createTable("report_id VARCHAR(26) NOT NULL, note_id VARCHAR(26) NOT NULL, target_id VARCHAR(26), message_id BIGINT NOT NULL, PRIMARY KEY (note_id, message_id) ")

@@ -151,7 +151,7 @@ class WarningSender(
                 // TODO: 古い形式への互換性のためのコード
                 val ulidRegex = Regex("[0-9A-Z]{26}")
                 val searchType =
-                    if (ulidRegex.matches(context.reportId)) Show.SearchType.ID else Show.SearchType.USERNAME
+                    if (ulidRegex.matches(context.reportTargetUsername)) Show.SearchType.ID else Show.SearchType.USERNAME
 
                 val userShow = Show(token, context.reportTargetUsername, searchType)
                 requestManager.addRequest(userShow, object : ApiResponseHandler {
@@ -215,8 +215,8 @@ class WarningSender(
                                             ).queue()
 
                                             // Remove buttons
-                                            //event.message.editMessageComponents(listOf()).queue()
-                                            msg.editMessageComponents(listOf()).queue()
+                                            //event.message.editMessageComponents().queue()
+                                            msg.editMessageComponents().queue()
 
                                             event.hook.sendMessage(
                                                 """
@@ -232,7 +232,7 @@ class WarningSender(
                                                     "closure_cancel_$processId",
                                                     "いいえ / No"
                                                 )
-                                            ).queue()
+                                            ).setEphemeral(true).queue()
                                         }
 
                                         override fun onFailure(response: ApiResponse?) {
