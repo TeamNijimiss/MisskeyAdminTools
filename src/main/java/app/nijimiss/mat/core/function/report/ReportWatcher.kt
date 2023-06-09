@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package app.nijimiss.mat.core.function
+package app.nijimiss.mat.core.function.report
 
 import app.nijimiss.mat.MisskeyAdminTools
 import app.nijimiss.mat.api.misskey.admin.Report
@@ -37,8 +37,12 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import org.apache.commons.lang3.StringUtils
+import page.nafuchoco.neobot.api.ConfigLoader
 import page.nafuchoco.neobot.api.module.NeoModuleLogger
 import java.awt.Color
+import java.io.File
+import java.io.IOException
+import java.nio.file.Files
 import java.sql.SQLException
 import java.text.SimpleDateFormat
 import java.util.*
@@ -51,19 +55,52 @@ class ReportWatcher(
     private val systemStore: MATSystemDataStore,
     private val reportStore: ReportsStore,
     private val requestManager: ApiRequestManager,
-    private val warningSender: WarningSender,
     private val token: String,
-    private val silenceRoleId: String,
-    private val targetReportChannel: Long,
-    excludeRoleId: List<Long>?
 ) : ListenerAdapter() {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
     private val discordApi: JDA = MisskeyAdminTools.getInstance().jda
+    private val watcherConfig: ReportWatcherConfig
     private val executorService: ScheduledExecutorService
+    private val targetReportChannel: Long
+    private val warningSender: WarningSender?
+    private val silenceRoleId: String?
     private val excludeRoleId: List<Long>
 
     init {
-        this.excludeRoleId = excludeRoleId ?: emptyList()
+        val configFile = File(MisskeyAdminTools.getInstance().dataFolder, "ReportWatcherConfig.yaml")
+        if (!configFile.exists()) {
+            try {
+                MisskeyAdminTools.getInstance().getResources("ReportWatcherConfig.yaml").use { original ->
+                    Files.copy(original, configFile.toPath())
+                    logger.info("The configuration file was not found, so a new file was created.")
+                }
+            } catch (e: IOException) {
+                logger.error(
+                    """
+                    The correct configuration file could not be retrieved from the executable.
+                    If you have a series of problems, please contact the developer.
+                    """.trimIndent(), e
+                )
+            }
+        }
+        watcherConfig = ConfigLoader.loadConfig(configFile, ReportWatcherConfig::class.java)
+
+        warningSender =
+            if (watcherConfig.warningSender?.warningTemplate != null && watcherConfig.warningSender.warningItems != null)
+                WarningSender(
+                    token,
+                    requestManager,
+                    watcherConfig.warningSender.warningTemplate,
+                    watcherConfig.warningSender.warningItems
+                ) else {
+                null
+            }
+        if (warningSender == null) logger.warn("The warning sender is not set.")
+
+        targetReportChannel =
+            watcherConfig.targetReportChannel ?: throw IllegalStateException("The target report channel is not set.")
+        silenceRoleId = watcherConfig.silenceRoleId
+        excludeRoleId = watcherConfig.excludeDiscordRoles ?: emptyList()
         discordApi.addEventListener(this) // Add Button Interaction Listener
         discordApi.addEventListener(AutoClosure(token, requestManager, reportStore)) // Add Auto Closure
         executorService = Executors.newSingleThreadScheduledExecutor()
@@ -134,6 +171,10 @@ class ReportWatcher(
                         val controlButtons = listOf(
                             Button.danger("report_freeze_" + report.targetUserID, "凍結 / Freeze"),
                             Button.secondary("report_silence_" + report.targetUserID, "ミュート / Silence"),
+                            Button.secondary(
+                                "report_invalid_0",
+                                "重複・無効 / Invalid"
+                            ), // why id 0? because it's not used
                             Button.success("report_completed_" + report.targetUserID, "完了 / Completed")
                         )
                         discordApi.getTextChannelById(targetReportChannel)
@@ -215,6 +256,16 @@ class ReportWatcher(
             }
 
             "silence" -> {
+                if (silenceRoleId == null) {
+                    event.reply(
+                        """
+                        ミュート機能は無効になっています。
+                        The mute function is disabled.
+                        """.trimIndent()
+                    ).setEphemeral(true).queue()
+                    return
+                }
+
                 val assign = Assign(token, processId, silenceRoleId)
                 requestManager.addRequest(assign, object : ApiResponseHandler {
                     override fun onSuccess(response: ApiResponse?) {
@@ -312,10 +363,9 @@ class ReportWatcher(
                 )
                     .addActionRow(
                         Button.danger("report_warning_" + event.messageId, "警告 / Warning"),
-                        Button.secondary("report_duplicate_" + event.messageId, "重複 / Duplicate"),
+                        Button.secondary("report_invalid_" + event.messageId, "重複・無効 / Invalid"),
                         Button.secondary("report_done_" + event.messageId, "手動にて対応済み / Done manually"),
                         Button.primary("report_problem_" + event.messageId, "問題なし / No problem"),
-                        Button.success("report_invalid_" + event.messageId, "無効 / Invalid")
                     )
                     .setEphemeral(true).queue()
             }
@@ -415,6 +465,16 @@ class ReportWatcher(
             }
 
             "warning" -> {
+                if (warningSender == null) {
+                    event.reply(
+                        """
+                        警告送信機能が無効になっています。
+                        The warning sending function is disabled.
+                        """.trimIndent()
+                    ).setEphemeral(true).queue()
+                    return
+                }
+
                 event.channel.retrieveMessageById(processId).queue { msg: Message ->
                     if (msg.embeds.isEmpty()) return@queue
 
@@ -442,46 +502,6 @@ class ReportWatcher(
                         targetNotes
                     )
                     warningSender.sendWarning(event, context)
-                }
-            }
-
-            "duplicate" -> {
-                event.channel.retrieveMessageById(processId).queue { msg: Message ->
-                    if (msg.embeds.isEmpty()) return@queue
-
-                    // Resolve Report
-                    val reportId = msg.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
-                        .toTypedArray()[1].trim { it <= ' ' }
-                    val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
-                    requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
-                        override fun onSuccess(response: ApiResponse?) {
-                            event.reply(
-                                """
-                                重複通報として登録しました。
-                                Registered as a duplicate report.
-                                """.trimIndent()
-                            ).setEphemeral(true).queue()
-                            msg.delete().queue {
-                                reportStore.removeReport(msg.idLong)
-                            }
-                        }
-
-                        override fun onFailure(response: ApiResponse?) {
-                            event.reply(
-                                """
-                                通報のクローズに失敗しました。時間を置いて実行してください。
-                                Report close failed. Please try again later.
-                                """.trimIndent()
-                            ).setEphemeral(true).queue()
-
-                            MisskeyAdminTools.getInstance().moduleLogger.error(
-                                """
-                                An error occurred while closing the report.
-                                Response Code: {}, Body: {}
-                                """.trimIndent(), response!!.statusCode, response.body
-                            )
-                        }
-                    })
                 }
             }
 
@@ -598,7 +618,9 @@ class ReportWatcher(
             }
 
             "invalid" -> {
-                event.channel.retrieveMessageById(processId).queue { msg: Message ->
+                event.channel.retrieveMessageById(
+                    if (processId == "0") event.messageId else processId
+                ).queue { msg: Message ->
                     if (msg.embeds.isEmpty()) return@queue
 
                     // Resolve Report

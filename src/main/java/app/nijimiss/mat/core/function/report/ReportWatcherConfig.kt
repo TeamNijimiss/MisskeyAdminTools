@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-package app.nijimiss.mat.core.function
+package app.nijimiss.mat.core.function.report
 
-data class ReportWarningContext(
-    val reportId: String,
-    val reportTargetUsername: String,
-    val reportTargetNoteIds: List<String>,
-    val warningMessage: String,
+data class ReportWatcherConfig(
+    val targetReportChannel: Long? = null,
+    val silenceRoleId: String? = null,
+    val excludeDiscordRoles: List<Long>? = null,
+    val warningSender: WarningSenderOptions? = null,
+)
+
+data class WarningSenderOptions(
+    val warningTemplate: String? = null,
+    val warningItems: List<String>? = null,
 )

@@ -5,33 +5,7 @@ authentication:
 discord:
   targetGuild: 0 # Target guild ID
 
-options:
-  reportWatcher:
-    reportWatcherEnabled: true # Enable report watcher
-    targetReportChannel: 0 # Target report channel ID
-    silenceRoleId: "" # Silence role ID
-    excludeDiscordRoles: [ ] # ID of the Disocrd role that cannot perform the freezing operation
-    warningSender:
-      warningTemplate: |-
-        **【投稿ガイドライン違反に関する警告】**
-        
-        にじみす.moeでは『にじみす投稿ガイドライン』にて
-        > {0}
-        の投稿を禁止しております。
-        
-        このような投稿が繰り返される場合、サイレンスやアカウント凍結の措置が行われる場合があります。
-        
-        健全運用にご協力のほどよろしくお願い申し上げます。
-        
-        
-        にじみす運営部
-      warningItems:
-        - CWの設定されていない性的表現または性的な連想をさせる表現の含まれる投稿
-        - CWの設定されていない暴力表現またはグロテスクな表現の含まれる投稿
-        - CWの設定されていない成人向けコンテンツへのリンクが含まれる投稿
-        - CW及びNSFWの設定されていない性的または暴力的表現を含むメディアの投稿
-        - CWの設定された性的または暴力的表現を含む投稿に対し適切に注釈を付与しない行為
-        - アフィリエイトを目的としたリンクを含む投稿を連続してかつ大量に行う行為
-        - その他，当運営が不適切と判断する投稿及び行為
+function:
+  reportWatcher: true
 
 debug: false

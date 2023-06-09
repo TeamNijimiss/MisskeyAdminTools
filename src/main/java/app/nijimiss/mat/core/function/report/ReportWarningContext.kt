@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package app.nijimiss.mat.core.function
 
-data class ReportContext(
+package app.nijimiss.mat.core.function.report
+
+data class ReportWarningContext(
     val reportId: String,
-    val messageId: String,
-    val reportTargetUserId: String,
-    val reportTargetNoteIds: List<String>
+    val reportTargetUsername: String,
+    val reportTargetNoteIds: List<String>,
+    val warningMessage: String,
 )

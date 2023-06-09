@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package app.nijimiss.mat.core.function
+package app.nijimiss.mat.core.function.report
 
 import app.nijimiss.mat.core.database.ReportsStore
 import app.nijimiss.mat.core.requests.ApiRequestManager

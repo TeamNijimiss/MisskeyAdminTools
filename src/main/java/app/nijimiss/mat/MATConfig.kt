@@ -29,7 +29,7 @@ data class Authentication(
 data class MATConfig(
     val authentication: Authentication? = null,
     val discord: DiscordConfig? = null,
-    val options: Options? = null,
+    val function: FunctionConfig? = null,
     val debug: Boolean = false,
 )
 
@@ -37,20 +37,6 @@ data class DiscordConfig(
     val targetGuild: Long? = null,
 )
 
-data class Options(
-    val reportWatcher: ReportWatcherOptions? = null
-)
-
-data class ReportWatcherOptions(
-    @get:JsonProperty("reportWatcherEnabled") @field:JsonProperty("reportWatcherEnabled")
-    val enabled: Boolean = true,
-    val targetReportChannel: Long? = null,
-    val silenceRoleId: String? = null,
-    val excludeDiscordRoles: List<Long>? = null,
-    val warningSender: WarningSenderOptions? = null,
-)
-
-data class WarningSenderOptions(
-    val warningTemplate: String? = null,
-    val warningItems: List<String>? = null,
+data class FunctionConfig(
+    val reportWatcher: Boolean = false,
 )

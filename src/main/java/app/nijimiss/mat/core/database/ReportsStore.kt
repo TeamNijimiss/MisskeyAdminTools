@@ -16,7 +16,7 @@
 
 package app.nijimiss.mat.core.database
 
-import app.nijimiss.mat.core.function.ReportContext
+import app.nijimiss.mat.core.function.report.ReportContext
 import page.nafuchoco.neobot.api.DatabaseConnector
 import java.sql.SQLException
 
