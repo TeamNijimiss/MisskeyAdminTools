@@ -70,22 +70,23 @@ class AutoClosure(
                         }
 
                         messages.forEach { id ->
-                            event.channel.retrieveMessageById(id).queue { message ->
-                                reportsStore.getReport(message.idLong)?.let { context ->
-                                    val resolveAbuseUserReport = ResolveAbuseUserReport(token, context.reportId)
-                                    requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
-                                        override fun onSuccess(response: ApiResponse?) {
-                                            message.delete().queue {
-                                                reportsStore.removeReport(id)
+                            if (id != processId.toLong()) // If the message is not the original report embed message, delete it
+                                event.channel.retrieveMessageById(id).queue { message ->
+                                    reportsStore.getReport(message.idLong)?.let { context ->
+                                        val resolveAbuseUserReport = ResolveAbuseUserReport(token, context.reportId)
+                                        requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
+                                            override fun onSuccess(response: ApiResponse?) {
+                                                message.delete().queue {
+                                                    reportsStore.removeReport(id)
+                                                }
                                             }
-                                        }
 
-                                        override fun onFailure(response: ApiResponse?) {
-                                            TODO("Not yet implemented")
-                                        }
-                                    })
+                                            override fun onFailure(response: ApiResponse?) {
+                                                TODO("Not yet implemented")
+                                            }
+                                        })
+                                    }
                                 }
-                            }
                         }
                     }
 
