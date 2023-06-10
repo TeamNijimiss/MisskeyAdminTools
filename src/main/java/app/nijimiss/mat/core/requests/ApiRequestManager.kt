@@ -21,6 +21,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.IOException
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -61,45 +62,64 @@ class ApiRequestManager(apiHostName: String) {
     private fun execute() {
         if (requestQueues.isEmpty()) return
         val requestQueue = requestQueues.poll()
-        val request = requestQueue.request
-        val handler = requestQueue.handler
         try {
-            val httpRequest: Request = Request.Builder()
-                .url("https://" + apiHostName + "/" + request.endpoint)
-                .method(
-                    request.method.name,
-                    if (request.body == null) null else request.body!!.toRequestBody(MEDIA_TYPE_JSON)
-                )
-                .build()
-
-            // Debug logging
-            MisskeyAdminTools.getInstance().moduleLogger.debug(
-                """
-                Executing request
-                Executed requests: {} {}
-                """.trimIndent(), request.method, request.body
-            )
-
-            httpClient.newCall(httpRequest).execute().use { httpResponse ->
-                val response = ApiResponse(
-                    request,
-                    httpResponse.code,
-                    if (httpResponse.body != null) httpResponse.body!!.string() else null
-                )
-                if (response.statusCode == request.successCode) {
-                    handler.onSuccess(response)
-                } else {
-                    handler.onFailure(response)
+            request(requestQueue)
+        } catch (e: Exception) {
+            if (e is IOException) {
+                var retryCount = 0
+                while (retryCount < 3) {
+                    try {
+                        Thread.sleep(1000 * retryCount.toLong())
+                        request(requestQueue)
+                        return
+                    } catch (e1: Exception) {
+                        retryCount++
+                    }
                 }
             }
-        } catch (e: Exception) {
-            handler.onFailure(ApiResponse(request, 0, null))
+
+            requestQueue.handler.onFailure(ApiResponse(requestQueue.request, 0, null))
             MisskeyAdminTools.getInstance().moduleLogger.warn(
                 """
                 Failed to execute request
                 Executed requests: {}
-                """.trimIndent(), request, e
+                """.trimIndent(), requestQueue.request, e
             )
+        }
+    }
+
+    @Throws(Exception::class)
+    private fun request(requestQueue: ApiRequestQueue) {
+        val request = requestQueue.request
+        val handler = requestQueue.handler
+
+        val httpRequest: Request = Request.Builder()
+            .url("https://" + apiHostName + "/" + request.endpoint)
+            .method(
+                request.method.name,
+                if (request.body == null) null else request.body!!.toRequestBody(MEDIA_TYPE_JSON)
+            )
+            .build()
+
+        // Debug logging
+        MisskeyAdminTools.getInstance().moduleLogger.debug(
+            """
+                Executing request
+                Executed requests: {} {}
+                """.trimIndent(), request.method, request.body
+        )
+
+        httpClient.newCall(httpRequest).execute().use { httpResponse ->
+            val response = ApiResponse(
+                request,
+                httpResponse.code,
+                if (httpResponse.body != null) httpResponse.body!!.string() else null
+            )
+            if (response.statusCode == request.successCode) {
+                handler.onSuccess(response)
+            } else {
+                handler.onFailure(response)
+            }
         }
     }
 
