@@ -20,6 +20,7 @@ import app.nijimiss.mat.core.database.AccountsStore;
 import app.nijimiss.mat.core.database.MATSystemDataStore;
 import app.nijimiss.mat.core.database.ReportsStore;
 import app.nijimiss.mat.core.function.link.DiscordMisskeyAccountLinker;
+import app.nijimiss.mat.core.function.report.NewReportWatcher;
 import app.nijimiss.mat.core.function.report.ReportWatcher;
 import app.nijimiss.mat.core.requests.ApiRequestManager;
 import net.dv8tion.jda.api.JDA;
@@ -43,6 +44,7 @@ public class MisskeyAdminTools extends NeoModule {
     private ApiRequestManager apiRequestManager;
 
     private ReportWatcher reportWatcher;
+    private NewReportWatcher newReportWatcher;
     private DiscordMisskeyAccountLinker accountLinker;
 
     public static MisskeyAdminTools getInstance() {
@@ -79,11 +81,16 @@ public class MisskeyAdminTools extends NeoModule {
         }
 
         apiRequestManager = new ApiRequestManager(config.getAuthentication().getInstanceHostname());
-        if (config.getFunction().getReportWatcher())
+        if (config.getFunction().getReportWatcher()) {
             reportWatcher = new ReportWatcher(systemDataStore,
                     reportsStore,
                     apiRequestManager,
                     config.getAuthentication().getInstanceToken());
+            newReportWatcher = new NewReportWatcher(systemDataStore,
+                    reportsStore,
+                    apiRequestManager,
+                    config.getAuthentication().getInstanceToken());
+        }
         if (config.getFunction().getAccountLinker()) {
             accountLinker = new DiscordMisskeyAccountLinker(systemDataStore,
                     accountsStore,
@@ -96,6 +103,7 @@ public class MisskeyAdminTools extends NeoModule {
     @Override
     public void onDisable() {
         reportWatcher.shutdown();
+        newReportWatcher.shutdown();
         apiRequestManager.shutdown();
     }
 

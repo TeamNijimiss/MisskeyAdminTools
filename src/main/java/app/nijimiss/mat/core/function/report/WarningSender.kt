@@ -62,7 +62,7 @@ class WarningSender(
                 warningItem, warningItem
             )
         })
-        event.reply(
+        event.hook.sendMessage(
             """
                 ユーザーに警告を送信します。警告の理由をリストから選択してください。
                 Send a warning to the user. Select the reason for the warning from the list.
