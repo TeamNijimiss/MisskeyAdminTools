@@ -2,10 +2,8 @@ authentication:
   instanceHostname: "nijimiss.moe" # Hostname of the instance
   instanceToken: ""
 
-discord:
-  targetGuild: 0 # Target guild ID
-
 function:
   reportWatcher: true
+  accountLinker: true
 
 debug: false

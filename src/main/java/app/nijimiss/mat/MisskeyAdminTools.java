@@ -16,8 +16,10 @@
 
 package app.nijimiss.mat;
 
+import app.nijimiss.mat.core.database.AccountsStore;
 import app.nijimiss.mat.core.database.MATSystemDataStore;
 import app.nijimiss.mat.core.database.ReportsStore;
+import app.nijimiss.mat.core.function.link.DiscordMisskeyAccountLinker;
 import app.nijimiss.mat.core.function.report.ReportWatcher;
 import app.nijimiss.mat.core.requests.ApiRequestManager;
 import net.dv8tion.jda.api.JDA;
@@ -37,9 +39,11 @@ public class MisskeyAdminTools extends NeoModule {
     private MATConfig config;
     private MATSystemDataStore systemDataStore;
     private ReportsStore reportsStore;
+    private AccountsStore accountsStore;
     private ApiRequestManager apiRequestManager;
 
     private ReportWatcher reportWatcher;
+    private DiscordMisskeyAccountLinker accountLinker;
 
     public static MisskeyAdminTools getInstance() {
         if (instance == null)
@@ -68,6 +72,8 @@ public class MisskeyAdminTools extends NeoModule {
             systemDataStore.createTable();
             reportsStore = new ReportsStore(getLauncher().getDatabaseConnector());
             reportsStore.createTable();
+            accountsStore = new AccountsStore(getLauncher().getDatabaseConnector());
+            accountsStore.createTable();
         } catch (SQLException e) {
             getModuleLogger().error("Failed to create a table in the database.", e);
         }
@@ -78,6 +84,13 @@ public class MisskeyAdminTools extends NeoModule {
                     reportsStore,
                     apiRequestManager,
                     config.getAuthentication().getInstanceToken());
+        if (config.getFunction().getAccountLinker()) {
+            accountLinker = new DiscordMisskeyAccountLinker(systemDataStore,
+                    accountsStore,
+                    apiRequestManager,
+                    config.getAuthentication().getInstanceToken());
+            registerCommand(accountLinker);
+        }
     }
 
     @Override
@@ -87,7 +100,7 @@ public class MisskeyAdminTools extends NeoModule {
     }
 
     public JDA getJDA() {
-        return getLauncher().getDiscordApi().getGuildById(config.getDiscord().getTargetGuild()).getJDA();
+        return getLauncher().getDiscordApi().getShardById(0);
     }
 
     public MATConfig getConfig() {

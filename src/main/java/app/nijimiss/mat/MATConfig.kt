@@ -28,15 +28,11 @@ data class Authentication(
 
 data class MATConfig(
     val authentication: Authentication? = null,
-    val discord: DiscordConfig? = null,
     val function: FunctionConfig? = null,
     val debug: Boolean = false,
 )
 
-data class DiscordConfig(
-    val targetGuild: Long? = null,
-)
-
 data class FunctionConfig(
     val reportWatcher: Boolean = false,
+    val accountLinker: Boolean = false,
 )
