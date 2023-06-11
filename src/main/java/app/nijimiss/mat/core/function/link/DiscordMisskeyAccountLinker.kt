@@ -30,6 +30,7 @@ import page.nafuchoco.neobot.api.command.CommandContext
 import page.nafuchoco.neobot.api.command.CommandExecutor
 import page.nafuchoco.neobot.api.command.CommandValueOption
 import page.nafuchoco.neobot.api.module.NeoModuleLogger
+import java.util.*
 
 
 class DiscordMisskeyAccountLinker(
@@ -58,6 +59,19 @@ class DiscordMisskeyAccountLinker(
     }
 
     override fun onInvoke(context: CommandContext) {
+        var update = false
+        if (accountsStore.getMisskeyId(context.invoker.idLong) != null) {
+            val updatedTime = accountsStore.getUpdatedTime(context.invoker.idLong)
+            // check last update before 30 days
+            if (updatedTime != null && Calendar.getInstance().timeInMillis - updatedTime < 2592000000) {
+                context.responseSender.sendMessage("30日以内に紐付けを実行場合は、再度紐付けを行うことができません。 / If you link within 30 days, you cannot link again.")
+                    .queue()
+                return
+            } else {
+                update = true
+            }
+        }
+
         var username = context.options["username"]!!.value as String
 
         // username start with @ -> remove @
@@ -69,8 +83,14 @@ class DiscordMisskeyAccountLinker(
                 val user = MAPPER.readValue(response!!.body, FullUser::class.java)
 
                 if (user.id != null) {
-                    accountsStore.addAccount(context.invoker.idLong, user.id)
+                    if (update) accountsStore.updateAccount(
+                        context.invoker.idLong,
+                        user.id
+                    ) else accountsStore.addAccount(context.invoker.idLong, user.id)
+
                     handlers.forEach { it.onLink(context.invoker.idLong, user.id) }
+                    context.responseSender.sendMessage("Misskey ID `${user.username}` とDiscordアカウントを紐付けました。 / Linked Misskey ID `${user.username}` and Discord account.")
+                        .queue()
                 } else {
                     handlers.forEach { it.onLinkFailed(context.invoker.idLong) }
                     context.responseSender.sendMessage("ユーザーが見つかりませんでした。 / User not found.").queue()
@@ -80,7 +100,8 @@ class DiscordMisskeyAccountLinker(
 
             override fun onFailure(response: ApiResponse?) {
                 handlers.forEach { it.onLinkFailed(context.invoker.idLong) }
-                context.responseSender.sendMessage("ユーザー情報の取得に失敗しました。 / Failed to get user information.").queue()
+                context.responseSender.sendMessage("ユーザー情報の取得に失敗しました。 / Failed to get user information.")
+                    .queue()
                 logger.error("Failed to get user")
             }
         })

@@ -1,0 +1,8 @@
+discordTargetChannel: 000000000000000000 # Specifies the channel to which the role synchronization results are sent.
+adminRole: "DISCORD_ROLE_ID" # Specifies the role that can execute the role synchronization command.
+
+roleAssign:
+  - discordRole: "DISCORD_ROLE_ID"
+    misskeyRole: "MISSKEY_ROLE_ID"
+  - discordRole: "DISCORD_ROLE_ID2"
+    misskeyRole: "MISSKEY_ROLE_ID2"

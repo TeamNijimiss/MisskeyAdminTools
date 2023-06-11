@@ -22,6 +22,8 @@ import app.nijimiss.mat.core.database.ReportsStore;
 import app.nijimiss.mat.core.function.link.DiscordMisskeyAccountLinker;
 import app.nijimiss.mat.core.function.report.NewReportWatcher;
 import app.nijimiss.mat.core.function.report.ReportWatcher;
+import app.nijimiss.mat.core.function.role.OldDataImporter;
+import app.nijimiss.mat.core.function.role.RoleSynchronizer;
 import app.nijimiss.mat.core.requests.ApiRequestManager;
 import net.dv8tion.jda.api.JDA;
 import page.nafuchoco.neobot.api.ConfigLoader;
@@ -33,6 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 public class MisskeyAdminTools extends NeoModule {
 
@@ -46,6 +49,7 @@ public class MisskeyAdminTools extends NeoModule {
     private ReportWatcher reportWatcher;
     private NewReportWatcher newReportWatcher;
     private DiscordMisskeyAccountLinker accountLinker;
+    private RoleSynchronizer roleSynchronizer;
 
     public static MisskeyAdminTools getInstance() {
         if (instance == null)
@@ -69,6 +73,7 @@ public class MisskeyAdminTools extends NeoModule {
         }
         config = ConfigLoader.loadConfig(configFile, MATConfig.class);
 
+        // Initialize the database.
         try {
             systemDataStore = new MATSystemDataStore(getLauncher().getDatabaseConnector());
             systemDataStore.createTable();
@@ -80,6 +85,7 @@ public class MisskeyAdminTools extends NeoModule {
             getModuleLogger().error("Failed to create a table in the database.", e);
         }
 
+        // Start the function.
         apiRequestManager = new ApiRequestManager(config.getAuthentication().getInstanceHostname());
         if (config.getFunction().getReportWatcher()) {
             reportWatcher = new ReportWatcher(systemDataStore,
@@ -97,7 +103,20 @@ public class MisskeyAdminTools extends NeoModule {
                     apiRequestManager,
                     config.getAuthentication().getInstanceToken());
             registerCommand(accountLinker);
+
+            if (config.getFunction().getReportWatcher()) {
+                roleSynchronizer = new RoleSynchronizer(accountsStore,
+                        apiRequestManager,
+                        config.getAuthentication().getInstanceToken());
+                accountLinker.registerHandler(roleSynchronizer);
+            }
         }
+
+        var migrateFolder = new File(getDataFolder(), "migrate");
+        if (!migrateFolder.exists())
+            migrateFolder.mkdirs();
+        OldDataImporter importer = new OldDataImporter(accountsStore);
+        Arrays.stream(migrateFolder.listFiles()).forEach(importer::load);
     }
 
     @Override

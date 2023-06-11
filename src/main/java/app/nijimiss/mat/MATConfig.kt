@@ -35,4 +35,5 @@ data class MATConfig(
 data class FunctionConfig(
     val reportWatcher: Boolean = false,
     val accountLinker: Boolean = false,
+    val roleSynchronizer: Boolean = false,
 )

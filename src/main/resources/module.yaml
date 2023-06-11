@@ -3,3 +3,4 @@ version: 1.0.0
 authors: [ NAFU_at ]
 website: "https://nijimiss.app/"
 main: "app.nijimiss.mat.MisskeyAdminTools"
+additionalIntents: [ GUILD_MEMBERS ]

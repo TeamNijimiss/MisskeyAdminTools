@@ -102,4 +102,21 @@ class AccountsStore(connector: DatabaseConnector) : DatabaseTable(connector, "ac
         }
         return null
     }
+
+    @Throws(SQLException::class)
+    fun getMisskeyAccounts(): List<String> {
+        val accounts = mutableListOf<String>()
+        connector.connection.use { connection ->
+            connection.prepareStatement(
+                "SELECT * FROM $tableName"
+            ).use { ps ->
+                ps.execute()
+                val rs = ps.resultSet
+                while (rs.next()) {
+                    accounts.add(rs.getString("misskey_id"))
+                }
+            }
+        }
+        return accounts
+    }
 }

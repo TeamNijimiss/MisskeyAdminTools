@@ -5,5 +5,6 @@ authentication:
 function:
   reportWatcher: true
   accountLinker: true
+  roleSynchronizer: true # Requires accountLinker to be enabled
 
 debug: false
