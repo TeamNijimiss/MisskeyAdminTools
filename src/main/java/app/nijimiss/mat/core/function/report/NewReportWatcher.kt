@@ -425,94 +425,86 @@ class NewReportWatcher(
             }
 
             "problem" -> {
-                event.channel.retrieveMessageById(processId).queue { msg: Message ->
-                    if (msg.embeds.isEmpty()) return@queue
-
-                    // Get Report ID
-                    val reportId = msg.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
+                // Get Report ID
+                val reportId =
+                    event.message.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
                         .toTypedArray()[1].trim { it <= ' ' }
 
-                    // Edit Report Embed
-                    val embedBuilder = EmbedBuilder(msg.embeds[0])
-                    embedBuilder.setColor(Color.getHSBColor(0.50f, 0.82f, 0.45f))
-                    embedBuilder.addField("処理 / Process", "問題なし / No problem", true)
-                    embedBuilder.addField("処理者 / Processor", event.user.asTag, true)
-                    embedBuilder.addField(
-                        "処理日時 / Processed Date", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(
-                            Date()
-                        ), true
-                    )
-                    msg.editMessageEmbeds(embedBuilder.build()).queue()
+                // Edit Report Embed
+                val embedBuilder = EmbedBuilder(event.message.embeds[0])
+                embedBuilder.setColor(Color.getHSBColor(0.50f, 0.82f, 0.45f))
+                embedBuilder.addField("処理 / Process", "問題なし / No problem", true)
+                embedBuilder.addField("処理者 / Processor", event.user.asTag, true)
+                embedBuilder.addField(
+                    "処理日時 / Processed Date", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(
+                        Date()
+                    ), true
+                )
+                event.message.editMessageEmbeds(embedBuilder.build()).queue()
 
-                    // Resolve Report
-                    val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
-                    requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
-                        override fun onSuccess(response: ApiResponse?) {
-                            // Remove buttons
-                            msg.editMessageComponents().queue {
-                                reportStore.removeReport(msg.idLong)
-                            }
+                // Resolve Report
+                val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
+                requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
+                    override fun onSuccess(response: ApiResponse?) {
+                        // Remove buttons
+                        event.message.editMessageComponents().queue {
+                            reportStore.removeReport(event.message.idLong)
                         }
+                    }
 
-                        override fun onFailure(response: ApiResponse?) {
-                            event.hook.sendMessage(
-                                """
+                    override fun onFailure(response: ApiResponse?) {
+                        event.hook.sendMessage(
+                            """
                                 通報のクローズに失敗しました。時間を置いて実行してください。
                                 Report close failed. Please try again later.
                                 """.trimIndent()
-                            ).setEphemeral(true).queue()
+                        ).setEphemeral(true).queue()
 
-                            MisskeyAdminTools.getInstance().moduleLogger.error(
-                                """
+                        MisskeyAdminTools.getInstance().moduleLogger.error(
+                            """
                                 An error occurred while closing the report.
                                 Response Code: {}, Body: {}
                                 """.trimIndent(), response!!.statusCode, response.body
-                            )
-                        }
-                    })
-                }
+                        )
+                    }
+                })
             }
 
             "noaction" -> {
-                event.channel.retrieveMessageById(
-                    if (processId == "0") event.messageId else processId
-                ).queue { msg: Message ->
-                    if (msg.embeds.isEmpty()) return@queue
-
-                    // Resolve Report
-                    val reportId = msg.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
+                // Resolve Report
+                val reportId =
+                    event.message.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
                         .toTypedArray()[1].trim { it <= ' ' }
-                    val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
-                    requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
-                        override fun onSuccess(response: ApiResponse?) {
-                            event.hook.sendMessage(
-                                """
+                val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
+                requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
+                    override fun onSuccess(response: ApiResponse?) {
+                        event.hook.sendMessage(
+                            """
                                 無効通報として登録しました。
                                 Registered as an invalid report.
                                 """.trimIndent()
-                            ).setEphemeral(true).queue()
-                            msg.delete().queue {
-                                reportStore.removeReport(msg.idLong)
-                            }
+                        ).setEphemeral(true).queue()
+                        event.message.delete().queue {
+                            reportStore.removeReport(event.message.idLong)
                         }
+                    }
 
-                        override fun onFailure(response: ApiResponse?) {
-                            event.hook.sendMessage(
-                                """
+                    override fun onFailure(response: ApiResponse?) {
+                        event.hook.sendMessage(
+                            """
                                 通報のクローズに失敗しました。時間を置いて実行してください。
                                 Report close failed. Please try again later.
                                 """.trimIndent()
-                            ).setEphemeral(true).queue()
+                        ).setEphemeral(true).queue()
 
-                            MisskeyAdminTools.getInstance().moduleLogger.error(
-                                """
+                        MisskeyAdminTools.getInstance().moduleLogger.error(
+                            """
                                 An error occurred while closing the report.
                                 Response Code: {}, Body: {}
                                 """.trimIndent(), response!!.statusCode, response.body
-                            )
-                        }
-                    })
-                }
+                        )
+                    }
+                })
             }
 
             "main" -> {
