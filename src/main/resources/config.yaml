@@ -6,5 +6,6 @@ function:
   reportWatcher: true
   accountLinker: true
   roleSynchronizer: true # Requires accountLinker to be enabled
+  emojiManager: true
 
 debug: false

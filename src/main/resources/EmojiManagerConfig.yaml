@@ -1,0 +1,10 @@
+targetReportChannel: 0 # Target report channel ID
+baseLimit: 10
+
+imageSaveFolderId: MISSKEY_FOLDER_ID # Folder ID to save the image
+
+roles:
+  - discordRole: 000000000000000000
+    limit: 30
+  - discordRole: 000000000000000000
+    limit: 50

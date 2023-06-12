@@ -36,4 +36,5 @@ data class FunctionConfig(
     val reportWatcher: Boolean = false,
     val accountLinker: Boolean = false,
     val roleSynchronizer: Boolean = false,
+    val emojiManager: Boolean? = null,
 )

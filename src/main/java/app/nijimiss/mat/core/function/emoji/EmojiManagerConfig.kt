@@ -13,21 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package app.nijimiss.mat.core.requests
 
-import com.google.gson.Gson
-import okhttp3.MediaType
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
+package app.nijimiss.mat.core.function.emoji
 
-abstract class JsonApiRequest : ValuedApiRequest() {
-    private val gson = Gson()
+data class EmojiManagerConfig(
+    val targetReportChannel: Long = 0,
+    val baseLimit: Int = 0,
+    val imageSaveFolderId: String = "",
+    val roles: List<Roles> = emptyList()
+)
 
-    override val body: RequestBody?
-        get() = gson.toJson(data).toRequestBody(MEDIA_TYPE_JSON)
-
-    companion object {
-        private val MEDIA_TYPE_JSON: MediaType = "application/json; charset=utf-8".toMediaType()
-    }
-}
+data class Roles(
+    val discordRole: Long = 0,
+    val limit: Int = 0
+)

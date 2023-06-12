@@ -20,10 +20,8 @@ import app.nijimiss.mat.core.requests.HttpRequestMethod;
 import app.nijimiss.mat.core.requests.JsonApiRequest;
 
 public abstract class RequireCredentialRequest extends JsonApiRequest {
-    private final String credential;
 
     public RequireCredentialRequest(String credential) {
-        this.credential = credential;
         super.add("i", credential);
     }
 

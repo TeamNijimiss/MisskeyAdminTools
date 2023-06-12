@@ -13,21 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package app.nijimiss.mat.core.requests
 
-import com.google.gson.Gson
-import okhttp3.MediaType
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
+import org.apache.commons.lang3.StringUtils
 
-abstract class JsonApiRequest : ValuedApiRequest() {
-    private val gson = Gson()
+abstract class ValuedApiRequest : ApiRequest {
+    protected val data: MutableMap<String, Any> = LinkedHashMap()
 
-    override val body: RequestBody?
-        get() = gson.toJson(data).toRequestBody(MEDIA_TYPE_JSON)
+    protected fun add(key: String, value: Any?) {
+        require(!StringUtils.isBlank(key)) { "Key cannot be blank" }
+        if (value != null) data[key] = value
+    }
 
-    companion object {
-        private val MEDIA_TYPE_JSON: MediaType = "application/json; charset=utf-8".toMediaType()
+    protected fun remove(key: String) {
+        data.remove(key)
     }
 }

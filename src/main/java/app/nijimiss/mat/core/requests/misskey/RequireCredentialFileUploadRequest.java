@@ -13,21 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package app.nijimiss.mat.core.requests
 
-import com.google.gson.Gson
-import okhttp3.MediaType
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
+package app.nijimiss.mat.core.requests.misskey;
 
-abstract class JsonApiRequest : ValuedApiRequest() {
-    private val gson = Gson()
+import app.nijimiss.mat.core.requests.FileUploadApiRequest;
+import app.nijimiss.mat.core.requests.HttpRequestMethod;
 
-    override val body: RequestBody?
-        get() = gson.toJson(data).toRequestBody(MEDIA_TYPE_JSON)
+public abstract class RequireCredentialFileUploadRequest extends FileUploadApiRequest {
 
-    companion object {
-        private val MEDIA_TYPE_JSON: MediaType = "application/json; charset=utf-8".toMediaType()
+    public RequireCredentialFileUploadRequest(String credential) {
+        super.add("i", credential);
+    }
+
+    @Override
+    public HttpRequestMethod getMethod() {
+        return HttpRequestMethod.POST;
     }
 }

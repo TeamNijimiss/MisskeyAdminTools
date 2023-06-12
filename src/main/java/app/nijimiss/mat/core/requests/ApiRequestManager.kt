@@ -16,27 +16,31 @@
 package app.nijimiss.mat.core.requests
 
 import app.nijimiss.mat.MisskeyAdminTools
-import okhttp3.MediaType
-import okhttp3.MediaType.Companion.toMediaType
+import devcsrj.okhttp3.logging.HttpLoggingInterceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
+import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
+
 class ApiRequestManager(apiHostName: String) {
     private val apiHostName: String
     private val executor: ScheduledExecutorService
+    private val logging: HttpLoggingInterceptor
     private val httpClient: OkHttpClient
     private val requestQueues: Queue<ApiRequestQueue>
 
     init {
         this.apiHostName = Objects.requireNonNull(apiHostName)
         executor = Executors.newSingleThreadScheduledExecutor()
-        httpClient = OkHttpClient()
+        logging = HttpLoggingInterceptor(LoggerFactory.getLogger(this.javaClass))
+        httpClient = OkHttpClient.Builder()
+            .addInterceptor(logging)
+            .build()
         requestQueues = ArrayDeque()
         executor.scheduleAtFixedRate({ execute() }, 0, 1500, TimeUnit.MILLISECONDS)
     }
@@ -97,19 +101,12 @@ class ApiRequestManager(apiHostName: String) {
             .url("https://" + apiHostName + "/" + request.endpoint)
             .method(
                 request.method.name,
-                if (request.body == null) null else request.body!!.toRequestBody(MEDIA_TYPE_JSON)
+                if (request.body == null) null else request.body!!
             )
             .build()
 
-        // Debug logging
-        MisskeyAdminTools.getInstance().moduleLogger.debug(
-            """
-                Executing request
-                Executed requests: {} {}
-                """.trimIndent(), request.method, request.body
-        )
-
         httpClient.newCall(httpRequest).execute().use { httpResponse ->
+            httpResponse.headers
             val response = ApiResponse(
                 request,
                 httpResponse.code,
@@ -121,9 +118,5 @@ class ApiRequestManager(apiHostName: String) {
                 handler.onFailure(response)
             }
         }
-    }
-
-    companion object {
-        private val MEDIA_TYPE_JSON: MediaType = "application/json; charset=utf-8".toMediaType()
     }
 }

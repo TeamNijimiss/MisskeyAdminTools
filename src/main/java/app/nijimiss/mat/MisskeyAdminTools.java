@@ -17,8 +17,10 @@
 package app.nijimiss.mat;
 
 import app.nijimiss.mat.core.database.AccountsStore;
+import app.nijimiss.mat.core.database.EmojiStore;
 import app.nijimiss.mat.core.database.MATSystemDataStore;
 import app.nijimiss.mat.core.database.ReportsStore;
+import app.nijimiss.mat.core.function.emoji.EmojiManager;
 import app.nijimiss.mat.core.function.link.DiscordMisskeyAccountLinker;
 import app.nijimiss.mat.core.function.report.NewReportWatcher;
 import app.nijimiss.mat.core.function.report.ReportWatcher;
@@ -44,12 +46,14 @@ public class MisskeyAdminTools extends NeoModule {
     private MATSystemDataStore systemDataStore;
     private ReportsStore reportsStore;
     private AccountsStore accountsStore;
+    private EmojiStore emojiStore;
     private ApiRequestManager apiRequestManager;
 
     private ReportWatcher reportWatcher;
     private NewReportWatcher newReportWatcher;
     private DiscordMisskeyAccountLinker accountLinker;
     private RoleSynchronizer roleSynchronizer;
+    private EmojiManager emojiManager;
 
     public static MisskeyAdminTools getInstance() {
         if (instance == null)
@@ -81,6 +85,8 @@ public class MisskeyAdminTools extends NeoModule {
             reportsStore.createTable();
             accountsStore = new AccountsStore(getLauncher().getDatabaseConnector());
             accountsStore.createTable();
+            emojiStore = new EmojiStore(getLauncher().getDatabaseConnector());
+            emojiStore.createTable();
         } catch (SQLException e) {
             getModuleLogger().error("Failed to create a table in the database.", e);
         }
@@ -110,6 +116,12 @@ public class MisskeyAdminTools extends NeoModule {
                         config.getAuthentication().getInstanceToken());
                 accountLinker.registerHandler(roleSynchronizer);
             }
+        }
+        if (config.getFunction().getEmojiManager()) {
+            emojiManager = new EmojiManager(emojiStore,
+                    apiRequestManager,
+                    config.getAuthentication().getInstanceToken());
+            registerCommand(emojiManager);
         }
 
         var migrateFolder = new File(getDataFolder(), "migrate");

@@ -13,21 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package app.nijimiss.mat.core.requests
 
-import com.google.gson.Gson
-import okhttp3.MediaType
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
+package app.nijimiss.mat.core.function.emoji
 
-abstract class JsonApiRequest : ValuedApiRequest() {
-    private val gson = Gson()
+import java.util.*
 
-    override val body: RequestBody?
-        get() = gson.toJson(data).toRequestBody(MEDIA_TYPE_JSON)
-
-    companion object {
-        private val MEDIA_TYPE_JSON: MediaType = "application/json; charset=utf-8".toMediaType()
-    }
-}
+data class EmojiRequest(
+    val requestId: UUID,
+    val requesterId: Long,
+    override val emojiName: String,
+    override val imageUrl: String,
+    override val license: String?,
+    override val sensitive: Boolean,
+    override val localOnly: Boolean,
+    override val comment: String?,
+    val createAt: Long
+) : Emoji

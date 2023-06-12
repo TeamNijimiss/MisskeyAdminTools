@@ -15,9 +15,11 @@
  */
 package app.nijimiss.mat.core.requests
 
+import okhttp3.RequestBody
+
 interface ApiRequest {
     val endpoint: String
     val successCode: Int
     val method: HttpRequestMethod
-    val body: String?
+    val body: RequestBody?
 }
