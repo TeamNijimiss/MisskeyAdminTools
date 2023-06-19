@@ -143,12 +143,19 @@ class EmojiManager(
                 // Upload emoji image file to Misskey
                 val file = File(MisskeyAdminTools.getInstance().dataFolder, "emoji/${image.fileName}")
                 FileUtils.copyURLToFile(URL(image.url), file)
-                val upload = Create(token, emojiManagerConfig.imageSaveFolderId.ifEmpty { null }, file)
+                val upload = Create(
+                    token,
+                    emojiManagerConfig.imageSaveFolderId.ifEmpty { null },
+                    image.fileName,
+                    null,
+                    false,
+                    file
+                )
                 requestManager.addRequest(upload, object : ApiResponseHandler {
                     override fun onSuccess(response: ApiResponse?) {
                         val uploadedFile =
                             MAPPER.readValue(response!!.body, app.nijimiss.mat.api.misskey.File::class.java)
-                        if (uploadedFile.url == null) {
+                        if (uploadedFile.url == null || uploadedFile.id == null) {
                             context.responseSender.sendMessage("絵文字のリクエストに失敗しました。 / Failed to request emoji.")
                                 .queue()
                             return
@@ -159,6 +166,7 @@ class EmojiManager(
                                 UUID.randomUUID(),
                                 context.invoker.idLong,
                                 name,
+                                uploadedFile.id,
                                 uploadedFile.url,
                                 license,
                                 isSensitive,
@@ -185,6 +193,13 @@ class EmojiManager(
         })
 
         registerHandler(EmojiRequestReportSender(emojiStore, emojiManagerConfig.targetReportChannel))
+        MisskeyAdminTools.getInstance().jda.addEventListener(
+            EmojiRequestButtonHandler(
+                emojiStore,
+                requestManager,
+                token
+            )
+        )
     }
 
 

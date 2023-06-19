@@ -22,6 +22,7 @@ data class EmojiRequest(
     val requestId: UUID,
     val requesterId: Long,
     override val emojiName: String,
+    override val imageFileId: String,
     override val imageUrl: String,
     override val license: String?,
     override val sensitive: Boolean,

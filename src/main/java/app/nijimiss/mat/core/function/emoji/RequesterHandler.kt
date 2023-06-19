@@ -24,6 +24,7 @@ interface RequesterHandler {
         requestId: UUID,
         requesterId: Long,
         emojiName: String,
+        imageFileId: String,
         imageUrl: String,
         license: String?,
         sensitive: Boolean,

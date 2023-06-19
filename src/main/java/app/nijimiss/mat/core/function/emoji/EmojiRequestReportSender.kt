@@ -28,7 +28,7 @@ import java.awt.Color
 import java.util.*
 
 class EmojiRequestReportSender(
-    private val EmojiStore: EmojiStore,
+    private val emojiStore: EmojiStore,
     private val targetReportChannel: Long
 ) : ListenerAdapter(), RequesterHandler {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
@@ -44,11 +44,27 @@ class EmojiRequestReportSender(
         requestId: UUID,
         requesterId: Long,
         emojiName: String,
+        imageFileId: String,
         imageUrl: String,
         license: String?,
         sensitive: Boolean,
         comment: String?
     ) {
+        emojiStore.addEmojiRequest(
+            EmojiRequest(
+                requestId,
+                requesterId,
+                emojiName,
+                imageFileId,
+                imageUrl,
+                license,
+                sensitive,
+                false,
+                comment,
+                System.currentTimeMillis()
+            )
+        )
+
         val requestInfo: EmbedBuilder = EmbedBuilder()
             .setTitle("絵文字の追加リクエスト / Emoji add request")
             .addField("リクエストID / Request ID", requestId.toString(), false)

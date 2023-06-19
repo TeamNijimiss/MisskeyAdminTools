@@ -30,6 +30,7 @@ class EmojiStore(connector: DatabaseConnector) : DatabaseTable(connector, "emoji
             "request_id VARCHAR(36) NOT NULL PRIMARY KEY, " +
                     "requester_id BIGINT NOT NULL, " +
                     "emoji_name VARCHAR(32) NOT NULL, " +
+                    "image_file_id VARCHAR(36) NOT NULL, " +
                     "image_url VARCHAR(256) NOT NULL, " +
                     "license VARCHAR(32), " +
                     "is_sensitive BOOLEAN NOT NULL DEFAULT 0, " +
@@ -69,6 +70,7 @@ class EmojiStore(connector: DatabaseConnector) : DatabaseTable(connector, "emoji
                             UUID.fromString(rs.getString("request_id")),
                             rs.getLong("requester_id"),
                             rs.getString("emoji_name"),
+                            rs.getString("image_file_id"),
                             rs.getString("image_url"),
                             rs.getString("license"),
                             rs.getBoolean("is_sensitive"),
@@ -86,29 +88,21 @@ class EmojiStore(connector: DatabaseConnector) : DatabaseTable(connector, "emoji
     }
 
     @Throws(SQLException::class)
-    fun addEmojiRequest(
-        requestId: String,
-        requesterId: Long,
-        emojiName: String,
-        imageUrl: String,
-        license: String,
-        sensitive: Boolean,
-        localOnly: Boolean,
-        comment: String?
-    ) {
+    fun addEmojiRequest(request: EmojiRequest) {
         connector.connection.use { connection ->
             connection.prepareStatement(
-                "INSERT INTO $tableName (request_id, requester_id, emoji_name, image_url, license, is_sensitive, local_only, comment) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO $tableName (request_id, requester_id, emoji_name, image_file_id, image_url, license, is_sensitive, local_only, comment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
             ).use { ps ->
-                ps.setString(1, requestId)
-                ps.setLong(2, requesterId)
-                ps.setString(3, emojiName)
-                ps.setString(4, imageUrl)
-                ps.setString(5, license)
-                ps.setBoolean(6, sensitive)
-                ps.setBoolean(7, localOnly)
-                ps.setString(8, comment)
-                ps.execute()
+                ps.setString(1, request.requestId.toString())
+                ps.setLong(2, request.requesterId)
+                ps.setString(3, request.emojiName)
+                ps.setString(4, request.imageFileId)
+                ps.setString(5, request.imageUrl)
+                ps.setString(6, request.license)
+                ps.setBoolean(7, request.sensitive)
+                ps.setBoolean(8, request.localOnly)
+                ps.setString(9, request.comment)
+                ps.executeUpdate()
             }
         }
     }
@@ -126,6 +120,7 @@ class EmojiStore(connector: DatabaseConnector) : DatabaseTable(connector, "emoji
                             UUID.fromString(rs.getString("request_id")),
                             rs.getLong("requester_id"),
                             rs.getString("emoji_name"),
+                            rs.getString("image_file_id"),
                             rs.getString("image_url"),
                             rs.getString("license"),
                             rs.getBoolean("is_sensitive"),
@@ -166,27 +161,20 @@ class EmojiStore(connector: DatabaseConnector) : DatabaseTable(connector, "emoji
     }
 
     @Throws(SQLException::class)
-    fun updateEmoji(
-        requestId: String,
-        emojiName: String,
-        imageUrl: String,
-        license: String,
-        sensitive: Boolean,
-        localOnly: Boolean,
-        comment: String?
-    ) {
+    fun updateEmoji(request: EmojiRequest) {
         connector.connection.use { connection ->
             connection.prepareStatement(
-                "UPDATE $tableName SET emoji_name = ?, image_url = ?, license = ?, is_sensitive = ?, local_only = ?, comment = ? WHERE request_id = ?"
+                "UPDATE $tableName SET emoji_name = ?, image_file_id = ?, image_url = ?, license = ?, is_sensitive = ?, local_only = ?, comment = ? WHERE request_id = ?"
             ).use { ps ->
-                ps.setString(1, emojiName)
-                ps.setString(2, imageUrl)
-                ps.setString(3, license)
-                ps.setBoolean(4, sensitive)
-                ps.setBoolean(5, localOnly)
-                ps.setString(6, comment)
-                ps.setString(7, requestId)
-                ps.execute()
+                ps.setString(1, request.emojiName)
+                ps.setString(2, request.imageFileId)
+                ps.setString(3, request.imageUrl)
+                ps.setString(4, request.license)
+                ps.setBoolean(5, request.sensitive)
+                ps.setBoolean(6, request.localOnly)
+                ps.setString(7, request.comment)
+                ps.setString(8, request.requestId.toString())
+                ps.executeUpdate()
             }
         }
     }

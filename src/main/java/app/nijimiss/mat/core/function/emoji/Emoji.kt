@@ -18,6 +18,7 @@ package app.nijimiss.mat.core.function.emoji
 
 interface Emoji {
     val emojiName: String
+    val imageFileId: String
     val imageUrl: String
     val license: String?
     val sensitive: Boolean
