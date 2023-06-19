@@ -41,7 +41,11 @@ dependencies {
     // ClientLib
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
-    compileOnly("com.github.NeoBotDevelopment:NeoBotApi:2.0.0-alpha.1")
+    implementation("com.github.devcsrj:slf4j-okhttp3-logging-interceptor:1.0.1")
+    compileOnly("com.github.NeoBotDevelopment:NeoBotApi:2.0.0-alpha.3")
+
+    implementation("com.konghq:unirest-java:3.14.4")
+
 
     // Parser
     implementation("com.google.code.gson:gson:2.10.1")
@@ -54,6 +58,9 @@ dependencies {
     implementation("commons-io:commons-io:2.11.0")
     implementation("commons-codec:commons-codec:1.15")
     implementation("org.apache.commons:commons-lang3:3.12.0")
+    implementation("org.apache.tika:tika-core:2.8.0")
+
+    implementation("org.xerial:sqlite-jdbc:3.41.2.1")
 }
 
 tasks.test {
