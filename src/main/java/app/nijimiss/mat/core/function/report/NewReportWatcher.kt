@@ -332,7 +332,12 @@ class NewReportWatcher(
                 val reportId =
                     event.message.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
                         .toTypedArray()[1].trim { it <= ' ' }
-                val suspendUser = SuspendUser(token, processId)
+
+                val context = reportStore.getReport(event.message.idLong)
+                val suspendUser = SuspendUser(
+                    token,
+                    context?.reportTargetUserId ?: event.message.embeds[0].fields[1].value!!.trim { it <= ' ' })
+                
                 requestManager.addRequest(suspendUser, object : ApiResponseHandler {
                     override fun onSuccess(response: ApiResponse?) {
                         // Edit Report Embed
