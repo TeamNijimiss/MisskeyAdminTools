@@ -95,7 +95,7 @@ class AutoClosure(
                         通報をクローズしました。
                         Closed the report.
                         """.trimIndent()
-                    ).queue()
+                    ).setEphemeral(true).queue()
                 }
             }
 
