@@ -41,7 +41,7 @@ class AutoClosure(
         val action = args[1]
         val extendInfo = if (args.size > 3) args.copyOfRange(3, args.size) else null
 
-        event.deferReply(true).queue()
+        //event.deferReply(true).queue()
 
         when (action) {
             "close" -> {
