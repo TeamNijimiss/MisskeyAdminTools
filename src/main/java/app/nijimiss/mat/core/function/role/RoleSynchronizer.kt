@@ -45,7 +45,6 @@ import java.nio.file.Files
 class RoleSynchronizer(
     private val accountsStore: AccountsStore,
     private val requestManager: ApiRequestManager,
-    private val token: String,
 ) : ListenerAdapter(), LinkerHandler {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
     private val discordApi: JDA = MisskeyAdminTools.getInstance().jda
@@ -117,7 +116,7 @@ class RoleSynchronizer(
     }
 
     private fun synchronizeRole(discordId: Long, misskeyId: String) {
-        val show = Show(token, misskeyId, Show.SearchType.ID)
+        val show = Show(misskeyId, Show.SearchType.ID)
         requestManager.addRequest(show, object : ApiResponseHandler {
             override fun onSuccess(response: ApiResponse?) {
                 val user = MAPPER.readValue(response!!.body, FullUser::class.java)
@@ -127,7 +126,7 @@ class RoleSynchronizer(
                 // role synchronization
                 synchronizerConfig.roleAssign.forEach { role ->
                     if (misskeyRoles?.contains(role.misskeyRole) == true && discordRoles?.contains(role.discordRole) == false) {
-                        val unassign = Unassign(token, misskeyId, role.misskeyRole!!)
+                        val unassign = Unassign(misskeyId, role.misskeyRole!!)
                         requestManager.addRequest(unassign, object : ApiResponseHandler {
                             override fun onSuccess(response: ApiResponse?) {
                                 logger.debug("Unassigned role from user $misskeyId.")
@@ -138,7 +137,7 @@ class RoleSynchronizer(
                             }
                         })
                     } else if (misskeyRoles?.contains(role.misskeyRole) == false && discordRoles?.contains(role.discordRole) == true) {
-                        val assign = Assign(token, misskeyId, role.misskeyRole!!)
+                        val assign = Assign(misskeyId, role.misskeyRole!!)
                         requestManager.addRequest(assign, object : ApiResponseHandler {
                             override fun onSuccess(response: ApiResponse?) {
                                 logger.debug("Assigned role to user $misskeyId.")
@@ -159,7 +158,7 @@ class RoleSynchronizer(
     }
 
     private fun unassignAllRoles(misskeyId: String) {
-        val show = Show(token, misskeyId, Show.SearchType.ID)
+        val show = Show(misskeyId, Show.SearchType.ID)
         requestManager.addRequest(show, object : ApiResponseHandler {
             override fun onSuccess(response: ApiResponse?) {
                 val user = MAPPER.readValue(response!!.body, FullUser::class.java)
@@ -168,7 +167,7 @@ class RoleSynchronizer(
                 // role synchronization
                 synchronizerConfig.roleAssign.forEach { role ->
                     if (misskeyRoles?.contains(role.misskeyRole) == true) {
-                        val unassign = Unassign(token, misskeyId, role.misskeyRole!!)
+                        val unassign = Unassign(misskeyId, role.misskeyRole!!)
                         requestManager.addRequest(unassign, object : ApiResponseHandler {
                             override fun onSuccess(response: ApiResponse?) {
                                 logger.debug("Unassigned role from user $misskeyId.")

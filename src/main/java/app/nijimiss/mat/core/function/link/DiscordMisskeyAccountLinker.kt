@@ -37,7 +37,6 @@ class DiscordMisskeyAccountLinker(
     private val systemStore: MATSystemDataStore,
     private val accountsStore: AccountsStore,
     private val requestManager: ApiRequestManager,
-    private val token: String,
 ) : CommandExecutor("link") {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
     private val handlers: MutableList<LinkerHandler> = mutableListOf()
@@ -77,7 +76,7 @@ class DiscordMisskeyAccountLinker(
         // username start with @ -> remove @
         if (username.startsWith("@")) username = username.substring(1)
 
-        val userShow = Show(token, username, Show.SearchType.USERNAME)
+        val userShow = Show(username, Show.SearchType.USERNAME)
         requestManager.addRequest(userShow, object : ApiResponseHandler {
             override fun onSuccess(response: ApiResponse?) {
                 val user = MAPPER.readValue(response!!.body, FullUser::class.java)

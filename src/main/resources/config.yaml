@@ -1,6 +1,7 @@
 authentication:
   instanceHostname: "nijimiss.moe" # Hostname of the instance
   instanceToken: ""
+  superUserRoleIds: [ ] # ID of the Discord role that can perform all operations
 
 function:
   reportWatcher: true

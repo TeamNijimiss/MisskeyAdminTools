@@ -59,7 +59,6 @@ class NewReportWatcher(
     private val systemStore: MATSystemDataStore,
     private val reportStore: ReportsStore,
     private val requestManager: ApiRequestManager,
-    private val token: String,
 ) : ListenerAdapter() {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
     private val discordApi: JDA = MisskeyAdminTools.getInstance().jda
@@ -68,7 +67,7 @@ class NewReportWatcher(
     private val targetReportChannel: Long
     private val warningSender: WarningSender?
     private val silenceRoleId: String?
-    private val excludeRoleId: List<Long>
+    private val superUserRoleIds: List<Long>
 
     init {
         val configFile = File(MisskeyAdminTools.getInstance().dataFolder, "ReportWatcherConfig.yaml")
@@ -92,7 +91,6 @@ class NewReportWatcher(
         warningSender =
             if (watcherConfig.warningSender?.warningTemplate != null && watcherConfig.warningSender.warningItems != null)
                 WarningSender(
-                    token,
                     requestManager,
                     watcherConfig.warningSender.warningTemplate,
                     watcherConfig.warningSender.warningItems
@@ -104,9 +102,9 @@ class NewReportWatcher(
         targetReportChannel =
             watcherConfig.targetReportChannel ?: throw IllegalStateException("The target report channel is not set.")
         silenceRoleId = watcherConfig.silenceRoleId
-        excludeRoleId = watcherConfig.excludeDiscordRoles ?: emptyList()
+        superUserRoleIds = MisskeyAdminTools.getInstance().config.authentication?.superUserRoleIds ?: emptyList()
         discordApi.addEventListener(this) // Add Button Interaction Listener
-        discordApi.addEventListener(AutoClosure(token, requestManager, reportStore)) // Add Auto Closure
+        discordApi.addEventListener(AutoClosure(requestManager, reportStore)) // Add Auto Closure
         executorService = Executors.newSingleThreadScheduledExecutor()
         executorService.scheduleAtFixedRate({ execute() }, 0, 5, TimeUnit.MINUTES)
     }
@@ -120,7 +118,7 @@ class NewReportWatcher(
             return
         }
 
-        val abuseUserReports = AbuseUserReports(token, 10, sinceId, null, "unresolved", "combined", "combined", false)
+        val abuseUserReports = AbuseUserReports(10, sinceId, null, "unresolved", "combined", "combined", false)
         requestManager.addRequest(abuseUserReports, object : ApiResponseHandler {
             override fun onSuccess(response: ApiResponse?) {
                 try {
@@ -176,7 +174,7 @@ class NewReportWatcher(
 
                                 val reportContext = ReportContext(
                                     report.id,
-                                    result.id,
+                                    result.idLong,
                                     report.targetUserID!!,
                                     noteIds
                                 )
@@ -225,28 +223,55 @@ class NewReportWatcher(
         // mod_freeze_1234567890: args[0] = "report", args[1] = action, args[2] = processId
         if (args[0] != "mod") // If the button is not a report button, return.
             return
-        val processId = args[2] // report target user id or report embed message id
+        val processId = args[2] // report id
         val action = args[1]
         val extendInfo = if (args.size > 3) args.copyOfRange(3, args.size) else null
 
         event.deferEdit().queue()
 
-        when (action) {
-            "freeze" -> {
-                if (excludeRoleId.stream().anyMatch { o: Long ->
-                        event.member!!
-                            .roles.map { role: Role -> role.idLong }
-                            .contains(o)
-                    }) {
-                    event.hook.sendMessage(
-                        """
-                        あなたはこのユーザーを凍結する権限を持っていません。
-                        You do not have permission to freeze this user.
+        if (!superUserRoleIds.stream().anyMatch { o: Long ->
+                event.member!!
+                    .roles.map { role: Role -> role.idLong }
+                    .contains(o)
+            }) {
+            event.hook.sendMessage(
+                """
+                        あなたはこのアクションを実行する権限を持っていません。
+                        You do not have permission to perform this action.
                         """.trimIndent()
-                    ).setEphemeral(true).queue()
-                    return
+            ).setEphemeral(true).queue()
+            return
+        }
+
+        val context = reportStore.getReport(event.message.idLong) ?: run {
+            var targetUser = event.message.embeds[0].fields[1].value!!.trim { it <= ' ' }
+            val userShow = Show(targetUser, Show.SearchType.USERNAME)
+            requestManager.addRequest(userShow, object : ApiResponseHandler {
+                override fun onSuccess(response: ApiResponse?) {
+                    val user = MAPPER.readValue(response!!.body, FullUser::class.java)
+
+                    if (user == null) {
+                        event.hook.sendMessage("ユーザーが見つかりませんでした。 / User not found.").queue()
+                        return
+                    }
+
+                    targetUser = user.id!!
                 }
 
+                override fun onFailure(response: ApiResponse?) {
+                    // TODO: エラー処理
+                }
+            }).join()
+
+            val targetNotes =
+                NOTE_URL_PATTERN.matcher(event.message.embeds[0].description).results().map { it.group(2) }
+                    .filter(String::isNotBlank).toList()
+
+            ReportContext(processId, event.message.idLong, targetUser, targetNotes)
+        }
+
+        when (action) {
+            "freeze" -> {
                 val confirmButton = listOf(
                     Button.danger(
                         "mod_confirm_${processId}",
@@ -255,6 +280,45 @@ class NewReportWatcher(
                     Button.secondary("mod_main_${processId}", "キャンセル / Cancel")
                 ).map { ActionRow.of(it) }
                 event.message.editMessageComponents(confirmButton).queue()
+            }
+
+            "confirm" -> {
+                val suspendUser = SuspendUser(context.reportTargetUserId)
+                requestManager.addRequest(suspendUser, object : ApiResponseHandler {
+                    override fun onSuccess(response: ApiResponse?) {
+                        // Edit Report Embed
+                        addReportStatus(event.message, "凍結済み / Frozen", event.user.asTag)
+                        reportStore.removeReport(event.message.idLong)
+
+                        // Resolve Report
+                        if (closeReport(context, event)) {
+                            val confirmButton = listOf(
+                                Button.danger(
+                                    "closure_close_${event.messageId}",
+                                    "同一投稿への通報を自動的にクローズしますか？ / Close report to same post?"
+                                ),
+                                Button.secondary("mod_clear_${processId}", "キャンセル / Cancel")
+                            ).map { ActionRow.of(it) }
+                            event.message.editMessageComponents(confirmButton).queue()
+                        }
+                    }
+
+                    override fun onFailure(response: ApiResponse?) {
+                        event.hook.sendMessage(
+                            """
+                                凍結に失敗しました。時間を置いて実行してください。
+                                Failed to freeze the user. Please try again later.
+                                """.trimIndent()
+                        ).setEphemeral(true).queue()
+
+                        MisskeyAdminTools.getInstance().moduleLogger.error(
+                            """
+                                An error occurred while freezing the user.
+                                Response Code: {}, Body: {}
+                                """.trimIndent(), response!!.statusCode, response.body
+                        )
+                    }
+                })
             }
 
             "silence" -> {
@@ -268,48 +332,24 @@ class NewReportWatcher(
                     return
                 }
 
-                val assign = Assign(token, processId, silenceRoleId)
+                val assign = Assign(context.reportTargetUserId, silenceRoleId)
                 requestManager.addRequest(assign, object : ApiResponseHandler {
                     override fun onSuccess(response: ApiResponse?) {
-                        val reportId =
-                            event.message.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
-                                .toTypedArray()[1].trim { it <= ' ' }
-
                         // Edit Report Embed
                         addReportStatus(event.message, "ミュート済み / Muted", event.user.asTag)
+                        reportStore.removeReport(event.message.idLong)
 
                         // Resolve Report
-                        val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
-                        requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
-                            override fun onSuccess(response: ApiResponse?) {
-                                val confirmButton = listOf(
-                                    Button.danger(
-                                        "closure_close_${event.messageId}",
-                                        "同一投稿への通報を自動的にクローズしますか？ / Close report to same post?"
-                                    ),
-                                    Button.secondary("mod_clear_${processId}", "キャンセル / Cancel")
-                                ).map { ActionRow.of(it) }
-                                event.message.editMessageComponents(confirmButton).queue()
-                            }
-
-                            override fun onFailure(response: ApiResponse?) {
-                                event.hook.sendMessage(
-                                    """
-                                    通報のクローズに失敗しました。ミュート処理は完了しています。手動で通報をクローズしてください。
-                                    Report close failed. The silence process has been completed. Please close the report manually.
-                                    """.trimIndent()
-                                ).setEphemeral(true).queue()
-
-                                MisskeyAdminTools.getInstance().moduleLogger.error(
-                                    """
-                                    An error occurred while closing the report.
-                                    Response Code: {}, Body: {}
-                                    """.trimIndent(), response!!.statusCode, response.body
-                                )
-                                // Remove Buttons
-                                event.message.editMessageComponents().queue()
-                            }
-                        })
+                        if (closeReport(context, event)) {
+                            val confirmButton = listOf(
+                                Button.danger(
+                                    "closure_close_${event.messageId}",
+                                    "同一投稿への通報を自動的にクローズしますか？ / Close report to same post?"
+                                ),
+                                Button.secondary("mod_clear_${processId}", "キャンセル / Cancel")
+                            ).map { ActionRow.of(it) }
+                            event.message.editMessageComponents(confirmButton).queue()
+                        }
                     }
 
                     override fun onFailure(response: ApiResponse?) {
@@ -330,112 +370,6 @@ class NewReportWatcher(
                 })
             }
 
-            "confirm" -> {
-                val reportId =
-                    event.message.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
-                        .toTypedArray()[1].trim { it <= ' ' }
-
-                val context = reportStore.getReport(event.message.idLong)
-                val targetUser =
-                    context?.reportTargetUserId ?: event.message.embeds[0].fields[1].value!!.trim { it <= ' ' }
-
-
-                // TODO: 古い形式への互換性のためのコード
-                val ulidRegex = Regex("[0-9A-Z]{26}")
-                val searchType =
-                    if (ulidRegex.matches(targetUser)) Show.SearchType.ID else Show.SearchType.USERNAME
-
-                val userShow = Show(token, targetUser, searchType)
-                requestManager.addRequest(userShow, object : ApiResponseHandler {
-                    override fun onSuccess(response: ApiResponse?) {
-                        val user = MAPPER.readValue(response!!.body, FullUser::class.java)
-
-                        if (user == null) {
-                            event.hook.sendMessage("ユーザーが見つかりませんでした。 / User not found.").queue()
-                            return
-                        }
-
-                        val suspendUser = SuspendUser(
-                            token,
-                            user.id!!
-                        )
-
-                        requestManager.addRequest(suspendUser, object : ApiResponseHandler {
-                            override fun onSuccess(response: ApiResponse?) {
-                                // Edit Report Embed
-                                addReportStatus(event.message, "凍結済み / Frozen", event.user.asTag)
-
-                                // Resolve Report
-                                val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
-                                requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
-                                    override fun onSuccess(response: ApiResponse?) {
-                                        val confirmButton = listOf(
-                                            Button.danger(
-                                                "closure_close_${event.messageId}",
-                                                "同一投稿への通報を自動的にクローズしますか？ / Close report to same post?"
-                                            ),
-                                            Button.secondary("mod_clear_${processId}", "キャンセル / Cancel")
-                                        ).map { ActionRow.of(it) }
-                                        event.message.editMessageComponents(confirmButton).queue()
-                                    }
-
-                                    override fun onFailure(response: ApiResponse?) {
-                                        event.hook.sendMessage(
-                                            """
-                                        通報のクローズに失敗しました。凍結処理は完了しています。手動で通報をクローズしてください。
-                                        Report close failed. The freeze process has been completed. Please close the report manually.
-                                        """.trimIndent()
-                                        ).queue()
-
-                                        MisskeyAdminTools.getInstance().moduleLogger.error(
-                                            """
-                                        An error occurred while closing the report.
-                                        Response Code: {}, Body: {}
-                                        """.trimIndent(), response!!.statusCode, response.body
-                                        )
-
-                                        // Remove Buttons
-                                        event.message.editMessageComponents().queue()
-                                    }
-                                })
-                            }
-
-                            override fun onFailure(response: ApiResponse?) {
-                                event.hook.sendMessage(
-                                    """
-                                凍結に失敗しました。時間を置いて実行してください。
-                                Failed to freeze the user. Please try again later.
-                                """.trimIndent()
-                                ).setEphemeral(true).queue()
-
-                                MisskeyAdminTools.getInstance().moduleLogger.error(
-                                    """
-                                An error occurred while freezing the user.
-                                Response Code: {}, Body: {}
-                                """.trimIndent(), response!!.statusCode, response.body
-                                )
-                            }
-                        })
-                    }
-
-                    override fun onFailure(response: ApiResponse?) {
-                        event.hook.sendMessage(
-                            """
-                                凍結に失敗しました。時間を置いて実行してください。
-                                Failed to freeze the user. Please try again later.
-                                """.trimIndent()
-                        ).setEphemeral(true).queue()
-
-                        MisskeyAdminTools.getInstance().moduleLogger.error(
-                            """
-                                An error occurred while freezing the user.
-                                Response Code: {}, Body: {}
-                                """.trimIndent(), response!!.statusCode, response.body
-                        )
-                    }
-                })
-            }
-
             "warning" -> {
                 if (warningSender == null) {
                     event.hook.sendMessage(
@@ -447,109 +381,40 @@ class NewReportWatcher(
                     return
                 }
 
-                // Resolve Report
-                val reportId =
-                    event.message.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
-                        .toTypedArray()[1].trim { it <= ' ' }
-
-                val targetUserId =
-                    event.message.embeds[0].fields[1].value!!.trim { it <= ' ' }
-
-                val targetNotes =
-                    NOTE_URL_PATTERN.matcher(event.message.embeds[0].description).results().map { it.group(2) }
-                        .filter(String::isNotBlank).toList()
-
-                // SQLから通報情報を取得する。SQLにデータがない場合は旧来の方法で生成する。
-                val context = reportStore.getReport(event.message.idLong) ?: ReportContext(
-                    reportId,
-                    event.message.id,
-                    targetUserId,
-                    targetNotes
-                )
                 warningSender.sendWarning(event, context)
             }
 
             "problem" -> {
-                // Get Report ID
-                val reportId =
-                    event.message.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
-                        .toTypedArray()[1].trim { it <= ' ' }
-
                 // Edit Report Embed
-                val embedBuilder = EmbedBuilder(event.message.embeds[0])
-                embedBuilder.setColor(Color.getHSBColor(0.50f, 0.82f, 0.45f))
-                embedBuilder.addField("処理 / Process", "問題なし / No problem", true)
-                embedBuilder.addField("処理者 / Processor", event.user.asTag, true)
-                embedBuilder.addField(
-                    "処理日時 / Processed Date", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(
-                        Date()
-                    ), true
-                )
-                event.message.editMessageEmbeds(embedBuilder.build()).queue()
+                addReportStatus(event.message, "問題なし / No problem", event.user.asTag)
+                reportStore.removeReport(event.message.idLong)
 
                 // Resolve Report
-                val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
-                requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
-                    override fun onSuccess(response: ApiResponse?) {
-                        // Remove buttons
-                        event.message.editMessageComponents().queue {
-                            reportStore.removeReport(event.message.idLong)
-                        }
-                    }
-
-                    override fun onFailure(response: ApiResponse?) {
-                        event.hook.sendMessage(
-                            """
-                                通報のクローズに失敗しました。時間を置いて実行してください。
-                                Report close failed. Please try again later.
-                                """.trimIndent()
-                        ).setEphemeral(true).queue()
-
-                        MisskeyAdminTools.getInstance().moduleLogger.error(
-                            """
-                                An error occurred while closing the report.
-                                Response Code: {}, Body: {}
-                                """.trimIndent(), response!!.statusCode, response.body
-                        )
-                    }
-                })
+                if (closeReport(context, event)) {
+                    val confirmButton = listOf(
+                        Button.danger(
+                            "closure_close_${event.messageId}",
+                            "同一投稿への通報を自動的にクローズしますか？ / Close report to same post?"
+                        ),
+                        Button.secondary("mod_clear_${processId}", "キャンセル / Cancel")
+                    ).map { ActionRow.of(it) }
+                    event.message.editMessageComponents(confirmButton).queue()
+                }
             }
 
             "noaction" -> {
                 // Resolve Report
-                val reportId =
-                    event.message.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
-                        .toTypedArray()[1].trim { it <= ' ' }
-                val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
-                requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
-                    override fun onSuccess(response: ApiResponse?) {
-                        event.hook.sendMessage(
-                            """
-                                無効通報として登録しました。
-                                Registered as an invalid report.
-                                """.trimIndent()
-                        ).setEphemeral(true).queue()
-                        event.message.delete().queue {
-                            reportStore.removeReport(event.message.idLong)
-                        }
+                if (closeReport(context, event)) {
+                    event.hook.sendMessage(
+                        """
+                        無効通報として登録しました。
+                        Registered as an invalid report.
+                        """.trimIndent()
+                    ).setEphemeral(true).queue()
+                    event.message.delete().queue {
+                        reportStore.removeReport(event.message.idLong)
                     }
-
-                    override fun onFailure(response: ApiResponse?) {
-                        event.hook.sendMessage(
-                            """
-                                通報のクローズに失敗しました。時間を置いて実行してください。
-                                Report close failed. Please try again later.
-                                """.trimIndent()
-                        ).setEphemeral(true).queue()
-
-                        MisskeyAdminTools.getInstance().moduleLogger.error(
-                            """
-                                An error occurred while closing the report.
-                                Response Code: {}, Body: {}
-                                """.trimIndent(), response!!.statusCode, response.body
-                        )
-                    }
-                })
+                }
             }
 
             "main" -> {
@@ -590,6 +455,51 @@ class NewReportWatcher(
             ), true
         )
         msg.editMessageEmbeds(embedBuilder.build()).queue()
+    }
+
+    private fun closeReport(context: ReportContext, event: ButtonInteractionEvent): Boolean {
+        var result = false
+
+        val resolveAbuseUserReport = ResolveAbuseUserReport(context.reportId)
+        requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
+            override fun onSuccess(response: ApiResponse?) {
+                result = true
+            }
+
+            override fun onFailure(response: ApiResponse?) {
+                if (response!!.statusCode == 500) {
+                    val userShow = Show(context.reportTargetUserId, Show.SearchType.ID)
+                    requestManager.addRequest(userShow, object : ApiResponseHandler {
+                        override fun onSuccess(response: ApiResponse?) {
+                            event.hook.sendMessage(
+                                """
+                                通報のクローズに失敗しました。手動にて処理してください。
+                                Report close failed. Please process it manually.
+                                """.trimIndent()
+                            ).setEphemeral(true).queue()
+                        }
+
+                        override fun onFailure(response: ApiResponse?) {
+                            if (response!!.statusCode == 404) {
+                                event.hook.sendMessage("該当ユーザーは既に削除されています。 / The user has already been deleted.")
+                                    .setEphemeral(true).queue()
+                                event.message.delete().queue()
+                                reportStore.removeReport(context.messageId)
+                            }
+                        }
+                    }).join()
+                } else {
+                    MisskeyAdminTools.getInstance().moduleLogger.error(
+                        """
+                    An error occurred while closing the report.
+                    Response Code: {}, Body: {}
+                    """.trimIndent(), response.statusCode, response.body
+                    )
+                }
+            }
+        }).join()
+
+        return result
     }
 
     companion object {

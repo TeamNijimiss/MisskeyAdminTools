@@ -17,7 +17,7 @@ package app.nijimiss.mat.core.function.report
 
 data class ReportContext(
     val reportId: String,
-    val messageId: String,
+    val messageId: Long,
     val reportTargetUserId: String,
     val reportTargetNoteIds: List<String>
 )

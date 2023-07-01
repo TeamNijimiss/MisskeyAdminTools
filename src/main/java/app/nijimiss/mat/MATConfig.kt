@@ -24,6 +24,9 @@ data class Authentication(
 
     @get:JsonProperty("instanceToken") @field:JsonProperty("instanceToken")
     val instanceToken: String? = null,
+
+    @get:JsonProperty("superUserRoleIds") @field:JsonProperty("superUserRoleIds")
+    val superUserRoleIds: List<Long>? = null,
 )
 
 data class MATConfig(
@@ -36,5 +39,5 @@ data class FunctionConfig(
     val reportWatcher: Boolean = false,
     val accountLinker: Boolean = false,
     val roleSynchronizer: Boolean = false,
-    val emojiManager: Boolean? = null,
+    val emojiManager: Boolean = false,
 )

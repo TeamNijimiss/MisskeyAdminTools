@@ -18,11 +18,17 @@ package app.nijimiss.mat.core.requests.misskey;
 
 import app.nijimiss.mat.core.requests.HttpRequestMethod;
 import app.nijimiss.mat.core.requests.JsonApiRequest;
+import app.nijimiss.mat.core.requests.RequireCredentialApiRequest;
+import org.jetbrains.annotations.NotNull;
 
-public abstract class RequireCredentialRequest extends JsonApiRequest {
+public abstract class RequireCredentialRequest extends JsonApiRequest implements RequireCredentialApiRequest {
 
-    public RequireCredentialRequest(String credential) {
-        super.add("i", credential);
+    public RequireCredentialRequest() {
+    }
+
+    @Override
+    public void setToken(@NotNull String token) {
+        super.add("i", token);
     }
 
     @Override

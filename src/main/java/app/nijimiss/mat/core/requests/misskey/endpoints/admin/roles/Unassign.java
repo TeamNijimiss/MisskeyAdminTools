@@ -21,8 +21,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class Unassign extends RequireCredentialRequest {
 
-    public Unassign(@NotNull String credential, @NotNull String userId, @NotNull String roleId) {
-        super(credential);
+    public Unassign(@NotNull String userId, @NotNull String roleId) {
         add("userId", userId);
         add("roleId", roleId);
     }

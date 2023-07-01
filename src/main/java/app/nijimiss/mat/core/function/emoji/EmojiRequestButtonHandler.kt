@@ -31,7 +31,6 @@ import java.awt.Color
 class EmojiRequestButtonHandler(
     private val emojiStore: EmojiStore,
     private val requestManager: ApiRequestManager,
-    private val token: String,
 ) : ListenerAdapter() {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
 
@@ -55,7 +54,6 @@ class EmojiRequestButtonHandler(
                 }
 
                 val addEmoji = Add(
-                    token,
                     request.emojiName,
                     arrayOf<String>(),
                     request.imageFileId,

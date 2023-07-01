@@ -21,16 +21,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class AbuseUserReports extends RequireCredentialRequest {
-    public AbuseUserReports(@NotNull String credential,
-                            int limit,
+    public AbuseUserReports(int limit,
                             @Nullable String sinceId,
                             @Nullable String untilId,
                             @Nullable String state,
                             @Nullable String reporterOrigin,
                             @Nullable String targetUserOrigin,
                             boolean forwarded) {
-        super(credential);
-
         if (limit < 1 || limit > 100)
             throw new IllegalArgumentException("limit must be between 1 and 100");
 
@@ -44,14 +41,13 @@ public class AbuseUserReports extends RequireCredentialRequest {
     }
 
     public AbuseUserReports(@NotNull String credential) {
-        this(credential, 10, null, null, null, null, null, false);
+        this(10, null, null, null, null, null, false);
     }
 
-    public AbuseUserReports(@NotNull String credential,
-                            int limit,
+    public AbuseUserReports(int limit,
                             @Nullable String sinceId,
                             @Nullable String untilId) {
-        this(credential, limit, sinceId, untilId, null, null, null, false);
+        this(limit, sinceId, untilId, null, null, null, false);
     }
 
 

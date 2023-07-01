@@ -21,8 +21,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class SuspendUser extends RequireCredentialRequest {
 
-    public SuspendUser(@NotNull String credential, @NotNull String userId) {
-        super(credential);
+    public SuspendUser(@NotNull String userId) {
         add("userId", userId);
     }
 

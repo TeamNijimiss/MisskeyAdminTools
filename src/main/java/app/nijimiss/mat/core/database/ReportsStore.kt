@@ -37,7 +37,7 @@ class ReportsStore(connector: DatabaseConnector) : DatabaseTable(connector, "rep
                     ps.setString(1, context.reportId)
                     ps.setString(2, noteId)
                     ps.setString(3, context.reportTargetUserId)
-                    ps.setLong(4, context.messageId.toLong())
+                    ps.setLong(4, context.messageId)
                     ps.execute()
                 }
             }
@@ -57,7 +57,7 @@ class ReportsStore(connector: DatabaseConnector) : DatabaseTable(connector, "rep
                     val reportId = rs.getString("report_id")
                     return ReportContext(
                         reportId,
-                        messageId.toString(),
+                        messageId,
                         rs.getString("target_id"),
                         getNotes(reportId)
                     )

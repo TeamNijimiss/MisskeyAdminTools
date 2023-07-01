@@ -42,7 +42,6 @@ import java.util.*
 class EmojiManager(
     private val emojiStore: EmojiStore,
     private val requestManager: ApiRequestManager,
-    private val token: String
 ) : CommandExecutor("emoji") {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
     private val emojiManagerConfig: EmojiManagerConfig
@@ -144,7 +143,6 @@ class EmojiManager(
                 val file = File(MisskeyAdminTools.getInstance().dataFolder, "emoji/${image.fileName}")
                 FileUtils.copyURLToFile(URL(image.url), file)
                 val upload = Create(
-                    token,
                     emojiManagerConfig.imageSaveFolderId.ifEmpty { null },
                     image.fileName,
                     null,
@@ -197,7 +195,6 @@ class EmojiManager(
             EmojiRequestButtonHandler(
                 emojiStore,
                 requestManager,
-                token
             )
         )
     }

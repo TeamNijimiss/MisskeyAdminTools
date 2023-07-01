@@ -14,4 +14,9 @@
  * limitations under the License.
  */
 
-package app.nijimiss.mat.core.function;
+package app.nijimiss.mat.core.requests
+
+fun interface RequireCredentialApiRequest {
+
+    fun setToken(token: String)
+}

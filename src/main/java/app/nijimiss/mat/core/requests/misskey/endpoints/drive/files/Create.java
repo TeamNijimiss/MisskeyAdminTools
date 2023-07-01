@@ -23,8 +23,7 @@ import java.io.File;
 
 public class Create extends RequireCredentialFileUploadRequest {
 
-    public Create(String credential, String folderId, String name, String comment, boolean isSensitive, boolean force, File file) {
-        super(credential);
+    public Create(String folderId, String name, String comment, boolean isSensitive, boolean force, File file) {
         add("folderId", folderId);
         add("name", name);
         add("comment", comment);
@@ -33,20 +32,20 @@ public class Create extends RequireCredentialFileUploadRequest {
         addFile("file", file);
     }
 
-    public Create(String credential, String folderId, String name, String comment, boolean isSensitive, File file) {
-        this(credential, folderId, name, comment, isSensitive, false, file);
+    public Create(String folderId, String name, String comment, boolean isSensitive, File file) {
+        this(folderId, name, comment, isSensitive, false, file);
     }
 
-    public Create(String credential, String name, String comment, boolean isSensitive, File file) {
-        this(credential, null, name, comment, isSensitive, file);
+    public Create(String name, String comment, boolean isSensitive, File file) {
+        this(null, name, comment, isSensitive, file);
     }
 
-    public Create(String credential, String name, boolean isSensitive, File file) {
-        this(credential, name, null, isSensitive, file);
+    public Create(String name, boolean isSensitive, File file) {
+        this(name, null, isSensitive, file);
     }
 
-    public Create(String credential, String name, File file) {
-        this(credential, name, false, file);
+    public Create(String name, File file) {
+        this(name, false, file);
     }
 
 

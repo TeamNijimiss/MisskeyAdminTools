@@ -40,7 +40,6 @@ import java.sql.SQLException;
 import java.util.Arrays;
 
 public class MisskeyAdminTools extends NeoModule {
-
     private static MisskeyAdminTools instance;
     private MATConfig config;
     private MATSystemDataStore systemDataStore;
@@ -92,35 +91,23 @@ public class MisskeyAdminTools extends NeoModule {
         }
 
         // Start the function.
-        apiRequestManager = new ApiRequestManager(config.getAuthentication().getInstanceHostname());
+        apiRequestManager = new ApiRequestManager(config.getAuthentication().getInstanceHostname(),
+                config.getAuthentication().getInstanceToken());
         if (config.getFunction().getReportWatcher()) {
-            reportWatcher = new ReportWatcher(systemDataStore,
-                    reportsStore,
-                    apiRequestManager,
-                    config.getAuthentication().getInstanceToken());
-            newReportWatcher = new NewReportWatcher(systemDataStore,
-                    reportsStore,
-                    apiRequestManager,
-                    config.getAuthentication().getInstanceToken());
+            reportWatcher = new ReportWatcher(systemDataStore, reportsStore, apiRequestManager);
+            newReportWatcher = new NewReportWatcher(systemDataStore, reportsStore, apiRequestManager);
         }
         if (config.getFunction().getAccountLinker()) {
-            accountLinker = new DiscordMisskeyAccountLinker(systemDataStore,
-                    accountsStore,
-                    apiRequestManager,
-                    config.getAuthentication().getInstanceToken());
+            accountLinker = new DiscordMisskeyAccountLinker(systemDataStore, accountsStore, apiRequestManager);
             registerCommand(accountLinker);
 
-            if (config.getFunction().getReportWatcher()) {
-                roleSynchronizer = new RoleSynchronizer(accountsStore,
-                        apiRequestManager,
-                        config.getAuthentication().getInstanceToken());
+            if (config.getFunction().getRoleSynchronizer()) {
+                roleSynchronizer = new RoleSynchronizer(accountsStore, apiRequestManager);
                 accountLinker.registerHandler(roleSynchronizer);
             }
         }
         if (config.getFunction().getEmojiManager()) {
-            emojiManager = new EmojiManager(emojiStore,
-                    apiRequestManager,
-                    config.getAuthentication().getInstanceToken());
+            emojiManager = new EmojiManager(emojiStore, apiRequestManager);
             registerCommand(emojiManager);
         }
 

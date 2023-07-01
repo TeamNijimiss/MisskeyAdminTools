@@ -27,31 +27,26 @@ import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
 
-class ApiRequestManager(apiHostName: String) {
-    private val apiHostName: String
-    private val executor: ScheduledExecutorService
-    private val logging: HttpLoggingInterceptor
-    private val httpClient: OkHttpClient
+class ApiRequestManager(private val apiHostName: String, private val accessToken: String) {
+    private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
+    private val logging: HttpLoggingInterceptor = HttpLoggingInterceptor(LoggerFactory.getLogger(this.javaClass))
+    private val httpClient: OkHttpClient = OkHttpClient.Builder().addInterceptor(logging).build()
     private val requestQueues: Queue<ApiRequestQueue>
 
     init {
-        this.apiHostName = Objects.requireNonNull(apiHostName)
-        executor = Executors.newSingleThreadScheduledExecutor()
-        logging = HttpLoggingInterceptor(LoggerFactory.getLogger(this.javaClass))
-        httpClient = OkHttpClient.Builder()
-            .addInterceptor(logging)
-            .build()
         requestQueues = ArrayDeque()
         executor.scheduleAtFixedRate({ execute() }, 0, 1500, TimeUnit.MILLISECONDS)
     }
 
-    fun addRequest(request: ApiRequest, handler: ApiResponseHandler) {
-        requestQueues.add(object : ApiRequestQueue {
+    fun addRequest(request: ApiRequest, handler: ApiResponseHandler): ApiRequestQueue {
+        val requestQueue = object : ApiRequestQueue() {
             override val request: ApiRequest
                 get() = request
             override val handler: ApiResponseHandler
                 get() = handler
-        })
+        }
+        requestQueues.add(requestQueue)
+        return requestQueue
     }
 
     fun shutdown() {
@@ -76,7 +71,7 @@ class ApiRequestManager(apiHostName: String) {
                         Thread.sleep(1000 * retryCount.toLong())
                         request(requestQueue)
                         return
-                    } catch (e1: Exception) {
+                    } catch (e1: IOException) {
                         retryCount++
                     }
                 }
@@ -96,6 +91,9 @@ class ApiRequestManager(apiHostName: String) {
     private fun request(requestQueue: ApiRequestQueue) {
         val request = requestQueue.request
         val handler = requestQueue.handler
+
+        if (request is RequireCredentialApiRequest)
+            request.setToken(accessToken)
 
         val httpRequest: Request = Request.Builder()
             .url("https://" + apiHostName + "/" + request.endpoint)
@@ -117,6 +115,7 @@ class ApiRequestManager(apiHostName: String) {
             } else {
                 handler.onFailure(response)
             }
+            requestQueue.finished = true
         }
     }
 }

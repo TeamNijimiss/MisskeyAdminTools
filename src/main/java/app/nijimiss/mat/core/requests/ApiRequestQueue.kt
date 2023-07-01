@@ -15,7 +15,23 @@
  */
 package app.nijimiss.mat.core.requests
 
-interface ApiRequestQueue {
-    val request: ApiRequest
-    val handler: ApiResponseHandler
+abstract class ApiRequestQueue {
+    internal var finished = false
+
+    abstract val request: ApiRequest
+    abstract val handler: ApiResponseHandler
+
+    fun isFinished(): Boolean {
+        return finished
+    }
+
+    fun join() {
+        while (!finished) {
+            try {
+                Thread.sleep(100)
+            } catch (e: InterruptedException) {
+                e.printStackTrace()
+            }
+        }
+    }
 }

@@ -21,8 +21,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class Create extends RequireCredentialRequest {
 
-    public Create(String credential,
-                  Visibility visibility,
+    public Create(Visibility visibility,
                   String[] visibleUserIds,
                   String text,
                   String cw,
@@ -34,7 +33,6 @@ public class Create extends RequireCredentialRequest {
                   boolean noExtractMentions,
                   boolean noExtractHash,
                   boolean noExtractEmojis) {
-        super(credential);
         add("visibility", visibility.name().toLowerCase());
         if (visibility == Visibility.SPECIFIED) add("visibleUserIds", visibleUserIds);
         add("text", text);
@@ -49,9 +47,7 @@ public class Create extends RequireCredentialRequest {
         add("noExtractEmojis", noExtractEmojis);
     }
 
-    public Create(String credential,
-                  String text) {
-        super(credential);
+    public Create(String text) {
         add("text", text);
     }
 

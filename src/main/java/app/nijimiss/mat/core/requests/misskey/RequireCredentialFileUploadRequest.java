@@ -18,11 +18,17 @@ package app.nijimiss.mat.core.requests.misskey;
 
 import app.nijimiss.mat.core.requests.FileUploadApiRequest;
 import app.nijimiss.mat.core.requests.HttpRequestMethod;
+import app.nijimiss.mat.core.requests.RequireCredentialApiRequest;
+import org.jetbrains.annotations.NotNull;
 
-public abstract class RequireCredentialFileUploadRequest extends FileUploadApiRequest {
+public abstract class RequireCredentialFileUploadRequest extends FileUploadApiRequest implements RequireCredentialApiRequest {
 
-    public RequireCredentialFileUploadRequest(String credential) {
-        super.add("i", credential);
+    public RequireCredentialFileUploadRequest() {
+    }
+
+    @Override
+    public void setToken(@NotNull String token) {
+        super.add("i", token);
     }
 
     @Override

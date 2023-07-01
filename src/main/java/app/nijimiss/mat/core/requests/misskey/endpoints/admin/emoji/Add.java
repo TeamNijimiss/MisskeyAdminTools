@@ -22,8 +22,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class Add extends RequireCredentialRequest {
 
-    public Add(@NotNull String credential,
-               @NotNull String name,
+    public Add(@NotNull String name,
                @NotNull String[] aliases,
                @NotNull String fileId,
                @Nullable String category,
@@ -31,7 +30,6 @@ public class Add extends RequireCredentialRequest {
                boolean isSensitive,
                boolean localOnly,
                @NotNull String[] roleIdsThatCanBeUsedThisEmojiAsReaction) {
-        super(credential);
         add("name", name);
         add("aliases", aliases);
         add("fileId", fileId);

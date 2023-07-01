@@ -16,16 +16,17 @@
 
 package app.nijimiss.mat.core.function.report
 
+import app.nijimiss.mat.MisskeyAdminTools
 import app.nijimiss.mat.core.database.ReportsStore
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
 import app.nijimiss.mat.core.requests.misskey.endpoints.admin.ResolveAbuseUserReport
+import app.nijimiss.mat.core.requests.misskey.endpoints.users.Show
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 
 class AutoClosure(
-    private val token: String,
     private val requestManager: ApiRequestManager,
     private val reportsStore: ReportsStore
 ) : ListenerAdapter() {
@@ -45,6 +46,8 @@ class AutoClosure(
 
         when (action) {
             "close" -> {
+                event.message.editMessageComponents().queue()
+
                 reportsStore.getReport(processId.toLong())?.let { report ->
                     if (report.reportTargetNoteIds.size > 1) {
                         event.hook.sendMessage(
@@ -73,7 +76,7 @@ class AutoClosure(
                             if (id != processId.toLong()) // If the message is not the original report embed message, delete it
                                 event.channel.retrieveMessageById(id).queue { message ->
                                     reportsStore.getReport(message.idLong)?.let { context ->
-                                        val resolveAbuseUserReport = ResolveAbuseUserReport(token, context.reportId)
+                                        val resolveAbuseUserReport = ResolveAbuseUserReport(context.reportId)
                                         requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
                                             override fun onSuccess(response: ApiResponse?) {
                                                 message.delete().queue {
@@ -82,7 +85,29 @@ class AutoClosure(
                                             }
 
                                             override fun onFailure(response: ApiResponse?) {
-                                                TODO("Not yet implemented")
+                                                if (response!!.statusCode == 500) {
+                                                    val userShow = Show(context.reportTargetUserId, Show.SearchType.ID)
+                                                    requestManager.addRequest(userShow, object : ApiResponseHandler {
+                                                        override fun onSuccess(response: ApiResponse?) {
+                                                            // do nothing
+                                                        }
+
+                                                        override fun onFailure(response: ApiResponse?) {
+                                                            if (response!!.statusCode == 404) {
+                                                                message.delete().queue {
+                                                                    reportsStore.removeReport(id)
+                                                                }
+                                                            }
+                                                        }
+                                                    })
+                                                } else {
+                                                    MisskeyAdminTools.getInstance().moduleLogger.error(
+                                                        """
+                                                        An error occurred while closing the report.
+                                                        Response Code: {}, Body: {}
+                                                        """.trimIndent(), response.statusCode, response.body
+                                                    )
+                                                }
                                             }
                                         })
                                     }

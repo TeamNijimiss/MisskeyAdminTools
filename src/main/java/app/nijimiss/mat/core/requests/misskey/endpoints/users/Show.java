@@ -21,8 +21,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class Show extends RequireCredentialRequest {
 
-    public Show(String credential, String search, SearchType type) {
-        super(credential);
+    public Show(String search, SearchType type) {
         switch (type) {
             case ID -> add("userId", search);
             case USERNAME -> add("username", search);

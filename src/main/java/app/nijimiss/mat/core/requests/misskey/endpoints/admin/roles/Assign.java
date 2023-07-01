@@ -21,15 +21,14 @@ import org.jetbrains.annotations.NotNull;
 
 public class Assign extends RequireCredentialRequest {
 
-    public Assign(@NotNull String credential, @NotNull String userId, @NotNull String roleId, long expiresAt) {
-        super(credential);
+    public Assign(@NotNull String userId, @NotNull String roleId, long expiresAt) {
         add("userId", userId);
         add("roleId", roleId);
         add("expiresAt", expiresAt == -1 ? null : expiresAt);
     }
 
-    public Assign(@NotNull String credential, @NotNull String userId, @NotNull String roleId) {
-        this(credential, userId, roleId, -1);
+    public Assign(@NotNull String userId, @NotNull String roleId) {
+        this(userId, roleId, -1);
     }
 
     @NotNull

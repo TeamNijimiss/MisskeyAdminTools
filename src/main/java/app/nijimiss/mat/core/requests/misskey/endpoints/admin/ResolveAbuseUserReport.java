@@ -21,8 +21,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class ResolveAbuseUserReport extends RequireCredentialRequest {
 
-    public ResolveAbuseUserReport(String credential, @NotNull String reportId) {
-        super(credential);
+    public ResolveAbuseUserReport(@NotNull String reportId) {
         add("reportId", reportId);
     }
 

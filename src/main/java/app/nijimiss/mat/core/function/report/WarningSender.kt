@@ -39,7 +39,6 @@ import java.util.*
 import java.util.function.Consumer
 
 class WarningSender(
-    private val token: String,
     private val requestManager: ApiRequestManager,
     private val warningTemplate: String,
     private val warningItems: List<String>
@@ -69,7 +68,7 @@ class WarningSender(
                 """.trimIndent()
         ).addActionRow(builder.build()).setEphemeral(true).queue()
 
-        reportContexts[context.messageId] = context
+        reportContexts[context.messageId.toString()] = context
     }
 
     override fun onStringSelectInteraction(event: StringSelectInteractionEvent) {
@@ -153,7 +152,7 @@ class WarningSender(
                 val searchType =
                     if (ulidRegex.matches(context.reportTargetUsername)) Show.SearchType.ID else Show.SearchType.USERNAME
 
-                val userShow = Show(token, context.reportTargetUsername, searchType)
+                val userShow = Show(context.reportTargetUsername, searchType)
                 requestManager.addRequest(userShow, object : ApiResponseHandler {
                     override fun onSuccess(response: ApiResponse?) {
                         val user = MAPPER.readValue(response!!.body, FullUser::class.java)
@@ -164,7 +163,6 @@ class WarningSender(
                         }
 
                         val createNote = Create(
-                            token,
                             Visibility.SPECIFIED,
                             arrayOf(user.id),
                             context.warningMessage,
@@ -204,7 +202,7 @@ class WarningSender(
                                     msg.editMessageEmbeds(embedBuilder.build()).queue()
 
                                     // Resolve Report
-                                    val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
+                                    val resolveAbuseUserReport = ResolveAbuseUserReport(reportId)
                                     requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
                                         override fun onSuccess(response: ApiResponse?) {
                                             event.hook.sendMessage(

@@ -55,7 +55,6 @@ class ReportWatcher(
     private val systemStore: MATSystemDataStore,
     private val reportStore: ReportsStore,
     private val requestManager: ApiRequestManager,
-    private val token: String,
 ) : ListenerAdapter() {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
     private val discordApi: JDA = MisskeyAdminTools.getInstance().jda
@@ -88,7 +87,6 @@ class ReportWatcher(
         warningSender =
             if (watcherConfig.warningSender?.warningTemplate != null && watcherConfig.warningSender.warningItems != null)
                 WarningSender(
-                    token,
                     requestManager,
                     watcherConfig.warningSender.warningTemplate,
                     watcherConfig.warningSender.warningItems
@@ -102,7 +100,7 @@ class ReportWatcher(
         silenceRoleId = watcherConfig.silenceRoleId
         excludeRoleId = watcherConfig.excludeDiscordRoles ?: emptyList()
         discordApi.addEventListener(this) // Add Button Interaction Listener
-        discordApi.addEventListener(AutoClosure(token, requestManager, reportStore)) // Add Auto Closure
+        discordApi.addEventListener(AutoClosure(requestManager, reportStore)) // Add Auto Closure
         executorService = Executors.newSingleThreadScheduledExecutor()
         //executorService.scheduleAtFixedRate({ execute() }, 0, 5, TimeUnit.MINUTES)
     }
@@ -125,7 +123,7 @@ class ReportWatcher(
             return
         }
 
-        val abuseUserReports = AbuseUserReports(token, 10, sinceId, null, "unresolved", "combined", "combined", false)
+        val abuseUserReports = AbuseUserReports(10, sinceId, null, "unresolved", "combined", "combined", false)
         requestManager.addRequest(abuseUserReports, object : ApiResponseHandler {
             override fun onSuccess(response: ApiResponse?) {
                 try {
@@ -181,7 +179,7 @@ class ReportWatcher(
                             ?.sendMessageEmbeds(embedBuilder.build())
                             ?.addActionRow(controlButtons)?.queue { result ->
                                 logger.debug("Report message sent. ID: " + result.id)
-                                val messageId = result.id
+                                val messageId = result.idLong
                                 val reportContext = ReportContext(
                                     report.id!!,
                                     messageId,
@@ -266,7 +264,7 @@ class ReportWatcher(
                     return
                 }
 
-                val assign = Assign(token, processId, silenceRoleId)
+                val assign = Assign(processId, silenceRoleId)
                 requestManager.addRequest(assign, object : ApiResponseHandler {
                     override fun onSuccess(response: ApiResponse?) {
                         val reportId =
@@ -286,7 +284,7 @@ class ReportWatcher(
                         event.message.editMessageEmbeds(embedBuilder.build()).queue()
 
                         // Resolve Report
-                        val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
+                        val resolveAbuseUserReport = ResolveAbuseUserReport(reportId)
                         requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
                             override fun onSuccess(response: ApiResponse?) {
                                 // Reply
@@ -377,7 +375,7 @@ class ReportWatcher(
                     val reportId =
                         msg.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
                             .toTypedArray()[1].trim { it <= ' ' }
-                    val suspendUser = SuspendUser(token, processId)
+                    val suspendUser = SuspendUser(processId)
                     requestManager.addRequest(suspendUser, object : ApiResponseHandler {
                         override fun onSuccess(response: ApiResponse?) {
                             // Edit Report Embed
@@ -394,7 +392,7 @@ class ReportWatcher(
 
                             // Resolve Report
                             event.deferReply(true).queue() // 処理に3秒以上かかる場合、Discord側でエラーが発生するため、応答を遅らせる
-                            val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
+                            val resolveAbuseUserReport = ResolveAbuseUserReport(reportId)
                             requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
                                 override fun onSuccess(response: ApiResponse?) {
                                     event.hook.sendMessage(
@@ -497,7 +495,7 @@ class ReportWatcher(
                     // SQLから通報情報を取得する。SQLにデータがない場合は旧来の方法で生成する。
                     val context = reportStore.getReport(msg.idLong) ?: ReportContext(
                         reportId,
-                        msg.id,
+                        msg.idLong,
                         targetUserId,
                         targetNotes
                     )
@@ -526,7 +524,7 @@ class ReportWatcher(
                     msg.editMessageEmbeds(embedBuilder.build()).queue()
 
                     // Resolve Report
-                    val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
+                    val resolveAbuseUserReport = ResolveAbuseUserReport(reportId)
                     requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
                         override fun onSuccess(response: ApiResponse?) {
                             event.reply(
@@ -582,7 +580,7 @@ class ReportWatcher(
                     msg.editMessageEmbeds(embedBuilder.build()).queue()
 
                     // Resolve Report
-                    val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
+                    val resolveAbuseUserReport = ResolveAbuseUserReport(reportId)
                     requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
                         override fun onSuccess(response: ApiResponse?) {
                             event.reply(
@@ -626,7 +624,7 @@ class ReportWatcher(
                     // Resolve Report
                     val reportId = msg.embeds[0].footer!!.text!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }
                         .toTypedArray()[1].trim { it <= ' ' }
-                    val resolveAbuseUserReport = ResolveAbuseUserReport(token, reportId)
+                    val resolveAbuseUserReport = ResolveAbuseUserReport(reportId)
                     requestManager.addRequest(resolveAbuseUserReport, object : ApiResponseHandler {
                         override fun onSuccess(response: ApiResponse?) {
                             event.reply(
