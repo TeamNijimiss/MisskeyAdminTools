@@ -82,10 +82,19 @@ class DiscordMisskeyAccountLinker(
                 val user = MAPPER.readValue(response!!.body, FullUser::class.java)
 
                 if (user.id != null) {
-                    if (update) accountsStore.updateAccount(
-                        context.invoker.idLong,
-                        user.id
-                    ) else accountsStore.addAccount(context.invoker.idLong, user.id)
+                    if (accountsStore.getDiscordId(user.id) != null) {
+                        context.responseSender.sendMessage("このMisskeyアカウントは既に紐付けられています。 / This Misskey account is already linked.")
+                            .queue()
+                        return
+                    }
+
+                    if (update) {
+                        handlers.forEach { it.onUnlink(context.invoker.idLong, user.id) } // Unlink old misskey account
+                        accountsStore.updateAccount(
+                            context.invoker.idLong,
+                            user.id
+                        )
+                    } else accountsStore.addAccount(context.invoker.idLong, user.id)
 
                     handlers.forEach { it.onLink(context.invoker.idLong, user.id) }
                     context.responseSender.sendMessage("Misskey ID `${user.username}` とDiscordアカウントを紐付けました。 / Linked Misskey ID `${user.username}` and Discord account.")

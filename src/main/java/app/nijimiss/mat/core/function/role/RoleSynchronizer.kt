@@ -100,6 +100,10 @@ class RoleSynchronizer(
         synchronizeRole(discordId, misskeyId)
     }
 
+    override fun onUnlink(discordId: Long, misskeyId: String) {
+        unassignAllRoles(misskeyId)
+    }
+
     override fun onGuildMemberRoleAdd(event: GuildMemberRoleAddEvent) {
         val misskeyId = accountsStore.getMisskeyId(event.user.idLong)
         if (misskeyId != null) synchronizeRole(event.user.idLong, misskeyId)

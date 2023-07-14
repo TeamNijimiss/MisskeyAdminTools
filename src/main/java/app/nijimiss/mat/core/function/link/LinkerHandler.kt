@@ -21,4 +21,6 @@ interface LinkerHandler {
     fun onLink(discordId: Long, misskeyId: String) {}
 
     fun onLinkFailed(discordId: Long) {}
+
+    fun onUnlink(discordId: Long, misskeyId: String) {}
 }
