@@ -87,6 +87,7 @@ class ReportWatcher(
         warningSender =
             if (watcherConfig.warningSender?.warningTemplate != null && watcherConfig.warningSender.warningItems != null)
                 WarningSender(
+                    reportStore,
                     requestManager,
                     watcherConfig.warningSender.warningTemplate,
                     watcherConfig.warningSender.warningItems
@@ -275,7 +276,7 @@ class ReportWatcher(
                         val embedBuilder = EmbedBuilder(event.message.embeds[0])
                         embedBuilder.setColor(Color.getHSBColor(0.50f, 0.82f, 0.45f))
                         embedBuilder.addField("処理 / Process", "ミュート / Silence", true)
-                        embedBuilder.addField("処理者 / Processor", event.user.asTag, true)
+                        embedBuilder.addField("処理者 / Processor", event.user.name, true)
                         embedBuilder.addField(
                             "処理日時 / Processed Date", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(
                                 Date()
@@ -382,7 +383,7 @@ class ReportWatcher(
                             val embedBuilder = EmbedBuilder(msg.embeds[0])
                             embedBuilder.setColor(Color.getHSBColor(0.50f, 0.82f, 0.45f))
                             embedBuilder.addField("処理 / Process", "凍結 / Freeze", true)
-                            embedBuilder.addField("処理者 / Processor", event.user.asTag, true)
+                            embedBuilder.addField("処理者 / Processor", event.user.name, true)
                             embedBuilder.addField(
                                 "処理日時 / Processed Date", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(
                                     Date()
@@ -515,7 +516,7 @@ class ReportWatcher(
                     val embedBuilder = EmbedBuilder(msg.embeds[0])
                     embedBuilder.setColor(Color.getHSBColor(0.50f, 0.82f, 0.45f))
                     embedBuilder.addField("処理 / Process", "手動にて対応済み / Done manually", true)
-                    embedBuilder.addField("処理者 / Processor", event.user.asTag, true)
+                    embedBuilder.addField("処理者 / Processor", event.user.name, true)
                     embedBuilder.addField(
                         "処理日時 / Processed Date", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(
                             Date()
@@ -571,7 +572,7 @@ class ReportWatcher(
                     val embedBuilder = EmbedBuilder(msg.embeds[0])
                     embedBuilder.setColor(Color.getHSBColor(0.50f, 0.82f, 0.45f))
                     embedBuilder.addField("処理 / Process", "問題なし / No problem", true)
-                    embedBuilder.addField("処理者 / Processor", event.user.asTag, true)
+                    embedBuilder.addField("処理者 / Processor", event.user.name, true)
                     embedBuilder.addField(
                         "処理日時 / Processed Date", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(
                             Date()

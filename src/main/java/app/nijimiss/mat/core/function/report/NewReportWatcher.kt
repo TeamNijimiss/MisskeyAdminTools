@@ -91,6 +91,7 @@ class NewReportWatcher(
         warningSender =
             if (watcherConfig.warningSender?.warningTemplate != null && watcherConfig.warningSender.warningItems != null)
                 WarningSender(
+                    reportStore,
                     requestManager,
                     watcherConfig.warningSender.warningTemplate,
                     watcherConfig.warningSender.warningItems
@@ -287,8 +288,9 @@ class NewReportWatcher(
                 requestManager.addRequest(suspendUser, object : ApiResponseHandler {
                     override fun onSuccess(response: ApiResponse?) {
                         // Edit Report Embed
-                        addReportStatus(event.message, "凍結済み / Frozen", event.user.asTag)
+                        addReportStatus(event.message, "凍結済み / Frozen", event.user.name)
                         reportStore.removeReport(event.message.idLong)
+                        event.message.editMessageComponents().queue()
 
                         // Resolve Report
                         if (closeReport(context, event)) {
@@ -336,7 +338,7 @@ class NewReportWatcher(
                 requestManager.addRequest(assign, object : ApiResponseHandler {
                     override fun onSuccess(response: ApiResponse?) {
                         // Edit Report Embed
-                        addReportStatus(event.message, "ミュート済み / Muted", event.user.asTag)
+                        addReportStatus(event.message, "ミュート済み / Muted", event.user.name)
                         reportStore.removeReport(event.message.idLong)
 
                         // Resolve Report
@@ -386,7 +388,7 @@ class NewReportWatcher(
 
             "problem" -> {
                 // Edit Report Embed
-                addReportStatus(event.message, "問題なし / No problem", event.user.asTag)
+                addReportStatus(event.message, "問題なし / No problem", event.user.name)
                 reportStore.removeReport(event.message.idLong)
 
                 // Resolve Report

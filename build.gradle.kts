@@ -35,24 +35,24 @@ dependencies {
 
     // Logger
     implementation("org.slf4j:slf4j-api:2.0.5")
-    implementation("ch.qos.logback:logback-core:1.4.6")
-    implementation("ch.qos.logback:logback-classic:1.4.6")
+    implementation("ch.qos.logback:logback-core:1.4.7")
+    implementation("ch.qos.logback:logback-classic:1.4.7")
 
     // ClientLib
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
     implementation("com.github.devcsrj:slf4j-okhttp3-logging-interceptor:1.0.1")
-    compileOnly("com.github.NeoBotDevelopment:NeoBotApi:2.0.0-alpha.3")
+    compileOnly("com.github.NeoBotDevelopment:NeoBotApi:2.0.0-alpha.4")
 
     implementation("com.konghq:unirest-java:3.14.4")
 
 
     // Parser
     implementation("com.google.code.gson:gson:2.10.1")
-    implementation("com.fasterxml.jackson.core:jackson-core:2.14.2")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.14.2")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.14.2")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.14.2")
+    implementation("com.fasterxml.jackson.core:jackson-core:2.15.1")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.1")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.1")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.15.1")
 
     // Commons Library
     implementation("commons-io:commons-io:2.11.0")
@@ -60,7 +60,7 @@ dependencies {
     implementation("org.apache.commons:commons-lang3:3.12.0")
     implementation("org.apache.tika:tika-core:2.8.0")
 
-    implementation("org.xerial:sqlite-jdbc:3.41.2.1")
+    implementation("org.xerial:sqlite-jdbc:3.42.0.0")
 }
 
 tasks.test {

@@ -17,6 +17,7 @@ package app.nijimiss.mat.core.function.report
 
 import app.nijimiss.mat.MisskeyAdminTools
 import app.nijimiss.mat.api.misskey.FullUser
+import app.nijimiss.mat.core.database.ReportsStore
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
@@ -39,6 +40,7 @@ import java.util.*
 import java.util.function.Consumer
 
 class WarningSender(
+    private val reportStore: ReportsStore,
     private val requestManager: ApiRequestManager,
     private val warningTemplate: String,
     private val warningItems: List<String>
@@ -191,7 +193,7 @@ class WarningSender(
                                     val embedBuilder = EmbedBuilder(msg.embeds[0])
                                     embedBuilder.setColor(Color.getHSBColor(0.50f, 0.82f, 0.45f))
                                     embedBuilder.addField("処理 / Process", "警告 / Warning", true)
-                                    embedBuilder.addField("処理者 / Processor", event.user.asTag, true)
+                                    embedBuilder.addField("処理者 / Processor", event.user.name, true)
                                     embedBuilder.addField(
                                         "処理日時 / Processed Date",
                                         SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(
@@ -200,6 +202,7 @@ class WarningSender(
                                         true
                                     )
                                     msg.editMessageEmbeds(embedBuilder.build()).queue()
+                                    reportStore.removeReport(event.message.idLong)
 
                                     // Resolve Report
                                     val resolveAbuseUserReport = ResolveAbuseUserReport(reportId)
