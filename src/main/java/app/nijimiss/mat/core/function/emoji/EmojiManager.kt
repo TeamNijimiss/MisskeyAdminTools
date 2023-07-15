@@ -21,6 +21,7 @@ import app.nijimiss.mat.core.database.EmojiStore
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
+import app.nijimiss.mat.core.requests.misskey.endpoints.Emoji
 import app.nijimiss.mat.core.requests.misskey.endpoints.drive.files.Create
 import com.fasterxml.jackson.databind.ObjectMapper
 import net.dv8tion.jda.api.entities.Member
@@ -125,7 +126,23 @@ class EmojiManager(
                 val isSensitive = context.options["sensitive"]?.value as Boolean? ?: false
 
                 // check exist emoji
+                var exists = false
                 if (emojiStore.existsEmoji(name)) {
+                    exists = true
+                } else {
+                    val emoji = Emoji(name)
+                    requestManager.addRequest(emoji, object : ApiResponseHandler {
+                        override fun onSuccess(response: ApiResponse?) {
+                            exists = true
+                        }
+
+                        override fun onFailure(response: ApiResponse?) {
+                            // do nothing
+                        }
+                    }).join()
+                }
+
+                if (exists) {
                     context.responseSender.sendMessage("既に同じ名前の絵文字が存在します。 / Emoji with the same name already exists.")
                         .queue()
                     return
@@ -189,6 +206,9 @@ class EmojiManager(
                 return "絵文字をリクエストします。 / Request emoji."
             }
         })
+
+        options.add(EmojiFileChecker(requestManager))
+        options.add(EmojiRepairTool(emojiManagerConfig, requestManager))
 
         registerHandler(EmojiRequestReportSender(emojiStore, emojiManagerConfig.targetReportChannel))
         MisskeyAdminTools.getInstance().jda.addEventListener(
