@@ -86,6 +86,7 @@ class EmojiRequestButtonHandler(
                     .setDescription("Emoji has been denied.")
                 event.message.editMessageEmbeds(embedBuilder.build()).queue()
                 event.message.editMessageComponents().queue()
+                emojiStore.rejectEmojiRequest(processId)
             }
         }
     }

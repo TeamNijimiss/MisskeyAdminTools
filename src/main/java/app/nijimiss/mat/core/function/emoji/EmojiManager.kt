@@ -151,7 +151,7 @@ class EmojiManager(
 
                 if (exists) {
                     context.responseSender.sendMessage("既に同じ名前の絵文字が存在します。 / Emoji with the same name already exists.")
-                        .queue()
+                        .setEphemeral(true).queue()
                     return
                 }
 
@@ -159,7 +159,7 @@ class EmojiManager(
                 val requestCount = emojiStore.countEmojiRequestLastMonth(context.invoker.idLong)
                 if (requestCount >= getRequestLimit(context.invoker)) {
                     context.responseSender.sendMessage("絵文字のリクエスト数が上限に達しています。 / The number of emoji requests has reached the limit.")
-                        .queue()
+                        .setEphemeral(true).queue()
                     return
                 }
 
@@ -179,7 +179,7 @@ class EmojiManager(
                             MAPPER.readValue(response!!.body, app.nijimiss.mat.api.misskey.File::class.java)
                         if (uploadedFile.url == null || uploadedFile.id == null) {
                             context.responseSender.sendMessage("絵文字のリクエストに失敗しました。 / Failed to request emoji.")
-                                .queue()
+                                .setEphemeral(true).queue()
                             return
                         }
 
@@ -197,12 +197,12 @@ class EmojiManager(
                         }
 
                         context.responseSender.sendMessage("絵文字のリクエストが完了しました。 / Emoji request completed.")
-                            .queue()
+                            .setEphemeral(true).queue()
                     }
 
                     override fun onFailure(response: ApiResponse?) {
                         context.responseSender.sendMessage("絵文字のリクエストに失敗しました。 / Failed to request emoji.")
-                            .queue()
+                            .setEphemeral(true).queue()
                         logger.error("Failed to request emoji.\n{}: {}", response!!.statusCode, response.body)
                     }
                 })
