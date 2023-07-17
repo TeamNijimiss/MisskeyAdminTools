@@ -29,16 +29,12 @@ import java.util.*
 
 class EmojiRequestReportSender(
     private val emojiStore: EmojiStore,
-    private val targetReportChannel: Long
+    targetReportChannel: Long
 ) : ListenerAdapter(), RequesterHandler {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
     private val discordApi: JDA = MisskeyAdminTools.getInstance().jda
-    private val targetChannel: TextChannel
-
-    init {
-        targetChannel = discordApi.getTextChannelById(targetReportChannel)
-            ?: throw IllegalStateException("The specified channel does not exist.")
-    }
+    private val targetChannel: TextChannel = discordApi.getTextChannelById(targetReportChannel)
+        ?: throw IllegalStateException("The specified channel does not exist.")
 
     override fun requestEmoji(
         requestId: UUID,

@@ -36,7 +36,7 @@ abstract class DatabaseTable protected constructor(protected val connector: Data
     fun createTable(construction: String) {
         connector.connection.use { connection ->
             connection.prepareStatement(
-                "CREATE TABLE IF NOT EXISTS " + tableName + " (" + construction + ")"
+                "CREATE TABLE IF NOT EXISTS $tableName ($construction)"
             ).use { ps -> ps.execute() }
         }
     }

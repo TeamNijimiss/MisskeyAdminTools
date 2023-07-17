@@ -22,7 +22,7 @@ import com.zaxxer.hikari.HikariDataSource
 import java.io.File
 
 class OldDataImporter(
-    private val AccountsStore: AccountsStore,
+    private val accountsStore: AccountsStore,
 ) {
 
     fun load(file: File) {
@@ -39,7 +39,7 @@ class OldDataImporter(
                         val misskeyId = rs.getString("misskeyId")
 
                         if (discordId == 0L || misskeyId == null) continue
-                        AccountsStore.addAccount(discordId, misskeyId)
+                        accountsStore.addAccount(discordId, misskeyId)
                     }
                 }
             }
