@@ -125,6 +125,13 @@ class EmojiManager(
                 val license = context.options["license"]?.value as String?
                 val isSensitive = context.options["sensitive"]?.value as Boolean? ?: false
 
+                // name pattern check
+                if (!name.matches(Regex("^[a-zA-Z0-9_]+$"))) {
+                    context.responseSender.sendMessage("絵文字の名前には半角英数字とアンダースコアのみ使用できます。 / Only half-width alphanumeric characters and underscores can be used in the name of the emoji.")
+                        .setEphemeral(true).queue()
+                    return
+                }
+
                 // check exist emoji
                 var exists = false
                 if (emojiStore.existsEmoji(name)) {
