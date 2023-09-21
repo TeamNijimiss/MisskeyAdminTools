@@ -17,11 +17,13 @@
 package app.nijimiss.mat.core.function.emoji
 
 import app.nijimiss.mat.MisskeyAdminTools
+import app.nijimiss.mat.api.misskey.Emoji
 import app.nijimiss.mat.core.database.EmojiStore
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
 import app.nijimiss.mat.core.requests.misskey.endpoints.admin.emoji.Add
+import com.fasterxml.jackson.databind.ObjectMapper
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
@@ -29,6 +31,7 @@ import page.nafuchoco.neobot.api.module.NeoModuleLogger
 import java.awt.Color
 
 class EmojiRequestButtonHandler(
+    private val emojiRequester: EmojiRequester,
     private val emojiStore: EmojiStore,
     private val requestManager: ApiRequestManager,
 ) : ListenerAdapter() {
@@ -71,7 +74,11 @@ class EmojiRequestButtonHandler(
                         event.message.editMessageEmbeds(embedBuilder.build()).queue()
                         event.message.editMessageComponents().queue()
 
-                        emojiStore.approveEmojiRequest(processId, event.member!!.idLong)
+                        val emoji = MAPPER.readValue(
+                            response!!.body, Emoji::class.java
+                        )
+
+                        emojiStore.approveEmojiRequest(processId, event.member!!.idLong, emoji.id!!)
                     }
 
                     override fun onFailure(response: ApiResponse?) {
@@ -89,5 +96,9 @@ class EmojiRequestButtonHandler(
                 emojiStore.rejectEmojiRequest(processId)
             }
         }
+    }
+
+    companion object {
+        private val MAPPER = ObjectMapper()
     }
 }

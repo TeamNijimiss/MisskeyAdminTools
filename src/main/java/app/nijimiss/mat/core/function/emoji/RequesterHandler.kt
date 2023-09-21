@@ -30,4 +30,16 @@ interface RequesterHandler {
         sensitive: Boolean,
         comment: String?
     )
+
+    fun updateEmoji(
+        emojiId: String,
+        requestId: UUID,
+        requesterId: Long,
+        emojiName: String,
+        imageFileId: String,
+        imageUrl: String,
+        license: String?,
+        sensitive: Boolean,
+        comment: String?
+    )
 }

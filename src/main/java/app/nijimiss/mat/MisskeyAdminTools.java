@@ -20,7 +20,7 @@ import app.nijimiss.mat.core.database.AccountsStore;
 import app.nijimiss.mat.core.database.EmojiStore;
 import app.nijimiss.mat.core.database.MATSystemDataStore;
 import app.nijimiss.mat.core.database.ReportsStore;
-import app.nijimiss.mat.core.function.emoji.EmojiManager;
+import app.nijimiss.mat.core.function.emoji.EmojiRequester;
 import app.nijimiss.mat.core.function.link.DiscordMisskeyAccountLinker;
 import app.nijimiss.mat.core.function.report.NewReportWatcher;
 import app.nijimiss.mat.core.function.report.ReportWatcher;
@@ -52,7 +52,7 @@ public class MisskeyAdminTools extends NeoModule {
     private NewReportWatcher newReportWatcher;
     private DiscordMisskeyAccountLinker accountLinker;
     private RoleSynchronizer roleSynchronizer;
-    private EmojiManager emojiManager;
+    private EmojiRequester emojiRequester;
 
     public static MisskeyAdminTools getInstance() {
         if (instance == null)
@@ -105,10 +105,11 @@ public class MisskeyAdminTools extends NeoModule {
                 roleSynchronizer = new RoleSynchronizer(accountsStore, apiRequestManager);
                 accountLinker.registerHandler(roleSynchronizer);
             }
-        }
+
         if (config.getFunction().getEmojiManager()) {
-            emojiManager = new EmojiManager(emojiStore, apiRequestManager);
-            registerCommand(emojiManager);
+                emojiRequester = new EmojiRequester(accountsStore, emojiStore, apiRequestManager);
+                registerCommand(emojiRequester);
+        }
         }
 
         var migrateFolder = new File(getDataFolder(), "migrate");

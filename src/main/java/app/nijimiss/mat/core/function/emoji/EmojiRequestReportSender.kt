@@ -17,6 +17,7 @@
 package app.nijimiss.mat.core.function.emoji
 
 import app.nijimiss.mat.MisskeyAdminTools
+import app.nijimiss.mat.core.database.AccountsStore
 import app.nijimiss.mat.core.database.EmojiStore
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.JDA
@@ -28,6 +29,7 @@ import java.awt.Color
 import java.util.*
 
 class EmojiRequestReportSender(
+    private val accountsStore: AccountsStore,
     private val emojiStore: EmojiStore,
     targetReportChannel: Long
 ) : ListenerAdapter(), RequesterHandler {
@@ -64,7 +66,10 @@ class EmojiRequestReportSender(
         val requestInfo: EmbedBuilder = EmbedBuilder()
             .setTitle("絵文字の追加リクエスト / Emoji add request")
             .addField("リクエストID / Request ID", requestId.toString(), false)
-            .addField("リクエストユーザー / Request User", requesterId.toString(), false)
+            .addField(
+                "リクエストユーザー / Request User",
+                "$requesterId (${accountsStore.getMisskeyId(requesterId)})", false
+            )
             .addField("絵文字名 / Emoji name", emojiName, false)
             .addField("ライセンス / License", license ?: "None", false)
             .addField("NSFW", sensitive.toString(), false)
@@ -80,5 +85,19 @@ class EmojiRequestReportSender(
             )
             it.editMessageComponents().setActionRow(buttons).queue()
         }
+    }
+
+    override fun updateEmoji(
+        emojiId: String,
+        requestId: UUID,
+        requesterId: Long,
+        emojiName: String,
+        imageFileId: String,
+        imageUrl: String,
+        license: String?,
+        sensitive: Boolean,
+        comment: String?
+    ) {
+        TODO("Not yet implemented")
     }
 }

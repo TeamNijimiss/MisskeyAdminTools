@@ -16,20 +16,24 @@
 
 package app.nijimiss.mat.core.function.emoji
 
-import java.util.*
+import com.fasterxml.jackson.annotation.JsonProperty
 
-data class ApprovedEmoji(
-    val requestId: UUID,
-    val requesterId: Long,
+data class RegisteredEmoji(
+    val id: String? = null,
+    val aliases: List<String>? = null,
+    @get:JsonProperty("name") @field:JsonProperty("name")
     override val emojiName: String,
-    override val imageFileId: String,
+    /** this field is always return empty string */
+    override val imageFileId: String = "",
+    val category: String? = null,
+    val host: String? = null,
+    @get:JsonProperty("url") @field:JsonProperty("url")
     override val imageUrl: String,
-    override val license: String?,
+    override val license: String? = null,
+    @get:JsonProperty("isSensitive") @field:JsonProperty("isSensitive")
     override val sensitive: Boolean,
     override val localOnly: Boolean,
-    override val comment: String?,
-    val createAt: Long,
-    val approvedEmojiId: UUID?,
-    val approverId: Long,
-    val approvedAt: Long
+    @get:JsonProperty("roleIdsThatCanBeUsedThisEmojiAsReaction") @field:JsonProperty("roleIdsThatCanBeUsedThisEmojiAsReaction")
+    val roleIDSThatCanBeUsedThisEmojiAsReaction: List<String>? = null,
+    override val comment: String? = null
 ) : Emoji

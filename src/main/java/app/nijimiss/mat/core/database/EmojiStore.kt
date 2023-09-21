@@ -32,12 +32,13 @@ class EmojiStore(connector: DatabaseConnector) : DatabaseTable(connector, "emoji
                     "emoji_name VARCHAR(32) NOT NULL, " +
                     "image_file_id VARCHAR(36) NOT NULL, " +
                     "image_url VARCHAR(256) NOT NULL, " +
-                    "license VARCHAR(32), " +
+                    "license VARCHAR(128), " +
                     "is_sensitive BOOLEAN NOT NULL DEFAULT 0, " +
                     "local_only BOOLEAN NOT NULL DEFAULT 0, " +
                     "comment VARCHAR(256), " +
                     "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
                     "approved BOOLEAN NOT NULL DEFAULT 0, " +
+                    "approved_emoji_id VARCHAR(36)," +
                     "approver_id BIGINT, " +
                     "approved_at TIMESTAMP"
         )
@@ -77,6 +78,7 @@ class EmojiStore(connector: DatabaseConnector) : DatabaseTable(connector, "emoji
                             rs.getBoolean("local_only"),
                             rs.getString("comment"),
                             rs.getTimestamp("created_at").time,
+                            UUID.fromString(rs.getString("approved_emoji_id")),
                             rs.getLong("approver_id"),
                             rs.getTimestamp("approved_at").time
                         )
@@ -135,14 +137,46 @@ class EmojiStore(connector: DatabaseConnector) : DatabaseTable(connector, "emoji
         return null
     }
 
-    @Throws(SQLException::class)
-    fun approveEmojiRequest(requestId: String, approverId: Long) {
+    fun searchEmojiRequest(requesterId: Long, emojiName: String): List<EmojiRequest> {
+        val requests = mutableListOf<EmojiRequest>()
         connector.connection.use { connection ->
             connection.prepareStatement(
-                "UPDATE $tableName SET approved = TRUE, approver_id = ?, approved_at = CURRENT_TIMESTAMP WHERE request_id = ?"
+                "SELECT * FROM $tableName WHERE requester_id = ? AND approved = FALSE AND emoji_name LIKE ?"
+            ).use { ps ->
+                ps.setLong(1, requesterId)
+                ps.setString(2, "%$emojiName%")
+                ps.executeQuery().use { rs ->
+                    while (rs.next()) {
+                        requests.add(
+                            EmojiRequest(
+                                UUID.fromString(rs.getString("request_id")),
+                                rs.getLong("requester_id"),
+                                rs.getString("emoji_name"),
+                                rs.getString("image_file_id"),
+                                rs.getString("image_url"),
+                                rs.getString("license"),
+                                rs.getBoolean("is_sensitive"),
+                                rs.getBoolean("local_only"),
+                                rs.getString("comment"),
+                                rs.getTimestamp("created_at").time
+                            )
+                        )
+                    }
+                }
+            }
+        }
+        return requests
+    }
+
+    @Throws(SQLException::class)
+    fun approveEmojiRequest(requestId: String, approverId: Long, emojiId: String) {
+        connector.connection.use { connection ->
+            connection.prepareStatement(
+                "UPDATE $tableName SET approved = TRUE, approver_id = ?, approved_at = CURRENT_TIMESTAMP, approved_emoji_id = ? WHERE request_id = ?"
             ).use { ps ->
                 ps.setLong(1, approverId)
                 ps.setString(2, requestId)
+                ps.setString(3, emojiId)
                 ps.execute()
             }
         }

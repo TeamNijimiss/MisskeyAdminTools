@@ -26,6 +26,7 @@ import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import devcsrj.okhttp3.logging.HttpLoggingInterceptor
+import net.dv8tion.jda.api.entities.Role
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.slf4j.LoggerFactory
@@ -38,8 +39,24 @@ class EmojiFileChecker(
 ) : SubCommandOption("check") {
     private val logging: HttpLoggingInterceptor = HttpLoggingInterceptor(LoggerFactory.getLogger(this.javaClass))
     private val httpClient: OkHttpClient = OkHttpClient.Builder().addInterceptor(logging).build()
+    private val superUserRoleIds =
+        MisskeyAdminTools.getInstance().config.authentication?.superUserRoleIds ?: emptyList()
 
     override fun onInvoke(context: CommandContext) {
+        if (!superUserRoleIds.stream().anyMatch { o: Long ->
+                context.invoker
+                    .roles.map { role: Role -> role.idLong }
+                    .contains(o)
+            }) {
+            context.responseSender.sendMessage(
+                """
+                        あなたはこのアクションを実行する権限を持っていません。
+                        You do not have permission to perform this action.
+                        """.trimIndent()
+            ).setEphemeral(true).queue()
+            return
+        }
+
         context.responseSender.sendMessage("絵文字ファイルのチェックを開始します。").queue()
         val failedEmojis = mutableListOf<Emoji>()
         var untilId: String? = null
