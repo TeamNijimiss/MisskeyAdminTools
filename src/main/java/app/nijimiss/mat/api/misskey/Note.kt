@@ -35,6 +35,7 @@ data class Note(
     val reactionAcceptance: String? = null,
     val renoteCount: Long? = null,
     val repliesCount: Long? = null,
+    val clippedCount: Long? = null,
     val reactions: Map<String, Int>? = null,
     val reactionEmojis: Emojis? = null,
     val emojis: Emojis? = null,

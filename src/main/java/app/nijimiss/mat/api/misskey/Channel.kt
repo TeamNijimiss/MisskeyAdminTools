@@ -16,8 +16,12 @@
 
 package app.nijimiss.mat.api.misskey
 
+import com.fasterxml.jackson.annotation.JsonProperty
+
 data class Channel(
     val id: String? = null,
     val name: String? = null,
-    val color: String? = null
+    val color: String? = null,
+    @get:JsonProperty("isSensitive") @field:JsonProperty("isSensitive")
+    val isSensitive: Boolean? = null,
 )
