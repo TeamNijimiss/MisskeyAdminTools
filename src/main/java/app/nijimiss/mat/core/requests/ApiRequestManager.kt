@@ -35,7 +35,7 @@ class ApiRequestManager(private val apiHostName: String, private val accessToken
 
     init {
         requestQueues = ArrayDeque()
-        executor.scheduleAtFixedRate({ execute() }, 0, 1500, TimeUnit.MILLISECONDS)
+        executor.scheduleAtFixedRate({ execute() }, 0, 1000, TimeUnit.MILLISECONDS)
     }
 
     fun addRequest(request: ApiRequest, handler: ApiResponseHandler): ApiRequestQueue {
