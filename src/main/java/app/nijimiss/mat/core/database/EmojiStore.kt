@@ -175,8 +175,8 @@ class EmojiStore(connector: DatabaseConnector) : DatabaseTable(connector, "emoji
                 "UPDATE $tableName SET approved = TRUE, approver_id = ?, approved_at = CURRENT_TIMESTAMP, approved_emoji_id = ? WHERE request_id = ?"
             ).use { ps ->
                 ps.setLong(1, approverId)
-                ps.setString(2, requestId)
-                ps.setString(3, emojiId)
+                ps.setString(2, emojiId)
+                ps.setString(3, requestId)
                 ps.execute()
             }
         }

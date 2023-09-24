@@ -56,6 +56,8 @@ class EmojiRequestButtonHandler(
                     return
                 }
 
+                event.deferReply().queue()
+
                 val addEmoji = Add(
                     request.emojiName,
                     arrayOf<String>(),
