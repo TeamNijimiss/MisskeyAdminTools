@@ -1,0 +1,6 @@
+instances:
+  - name: "Development Server"
+    host: "dev.nijimiss.app"
+    token: "YourTokenHere"
+    permission: # List of discord roles that can issue invitation codes for this instance
+      - 000000000000

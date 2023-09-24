@@ -40,4 +40,5 @@ data class FunctionConfig(
     val accountLinker: Boolean = false,
     val roleSynchronizer: Boolean = false,
     val emojiManager: Boolean = false,
+    val inviteManager: Boolean = false,
 )
