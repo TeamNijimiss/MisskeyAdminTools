@@ -18,6 +18,7 @@ package app.nijimiss.mat.core.function.report
 import app.nijimiss.mat.MisskeyAdminTools
 import app.nijimiss.mat.api.misskey.FullUser
 import app.nijimiss.mat.core.database.ReportsStore
+import app.nijimiss.mat.core.database.UserStore
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
@@ -41,9 +42,11 @@ import java.util.function.Consumer
 
 class WarningSender(
     private val reportStore: ReportsStore,
+    private val userStore: UserStore,
     private val requestManager: ApiRequestManager,
     private val warningTemplate: String,
-    private val warningItems: List<String>
+    private val warningItems: List<String>,
+    private val continuousWarningLimit: Int
 ) : ListenerAdapter() {
     private val reportContexts: MutableMap<String, ReportContext>
     private val warningContexts: MutableMap<String, ReportWarningContext>
@@ -214,6 +217,18 @@ class WarningSender(
                                                 Warning sent and registered as warned.
                                                 """.trimIndent()
                                             ).queue()
+
+                                            // Update User Warned Count
+                                            val warningCount = userStore.getWarningCount(user.id!!) + 1
+                                            userStore.updateWarningCount(user.id, warningCount)
+                                            if (continuousWarningLimit < warningCount) {
+                                                event.hook.sendMessage(
+                                                    """
+                                                    警告回数が規定値を超えています。今後のユーザーの動向に注意してください。
+                                                    The number of warnings exceeds the limit. Please pay attention to the future behavior of the user.
+                                                    """.trimIndent()
+                                                ).queue()
+                                            }
 
                                             // Remove buttons
                                             //event.message.editMessageComponents().queue()

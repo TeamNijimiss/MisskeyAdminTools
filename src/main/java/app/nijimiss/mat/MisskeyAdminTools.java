@@ -16,10 +16,7 @@
 
 package app.nijimiss.mat;
 
-import app.nijimiss.mat.core.database.AccountsStore;
-import app.nijimiss.mat.core.database.EmojiStore;
-import app.nijimiss.mat.core.database.MATSystemDataStore;
-import app.nijimiss.mat.core.database.ReportsStore;
+import app.nijimiss.mat.core.database.*;
 import app.nijimiss.mat.core.function.emoji.EmojiRequester;
 import app.nijimiss.mat.core.function.invite.InviteManager;
 import app.nijimiss.mat.core.function.link.DiscordMisskeyAccountLinker;
@@ -45,6 +42,7 @@ public class MisskeyAdminTools extends NeoModule {
     private MATConfig config;
     private MATSystemDataStore systemDataStore;
     private ReportsStore reportsStore;
+    private UserStore userStore;
     private AccountsStore accountsStore;
     private EmojiStore emojiStore;
     private ApiRequestManager apiRequestManager;
@@ -84,6 +82,8 @@ public class MisskeyAdminTools extends NeoModule {
             systemDataStore.createTable();
             reportsStore = new ReportsStore(getLauncher().getDatabaseConnector());
             reportsStore.createTable();
+            userStore = new UserStore(getLauncher().getDatabaseConnector());
+            userStore.createTable();
             accountsStore = new AccountsStore(getLauncher().getDatabaseConnector());
             accountsStore.createTable();
             emojiStore = new EmojiStore(getLauncher().getDatabaseConnector());
@@ -96,8 +96,8 @@ public class MisskeyAdminTools extends NeoModule {
         apiRequestManager = new ApiRequestManager(config.getAuthentication().getInstanceHostname(),
                 config.getAuthentication().getInstanceToken());
         if (config.getFunction().getReportWatcher()) {
-            reportWatcher = new ReportWatcher(systemDataStore, reportsStore, apiRequestManager);
-            newReportWatcher = new NewReportWatcher(systemDataStore, reportsStore, apiRequestManager);
+            reportWatcher = new ReportWatcher(systemDataStore, reportsStore, userStore, apiRequestManager);
+            newReportWatcher = new NewReportWatcher(systemDataStore, reportsStore, userStore, apiRequestManager);
         }
         if (config.getFunction().getAccountLinker()) {
             accountLinker = new DiscordMisskeyAccountLinker(systemDataStore, accountsStore, apiRequestManager);

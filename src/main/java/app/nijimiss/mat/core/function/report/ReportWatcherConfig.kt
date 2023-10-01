@@ -26,4 +26,5 @@ data class ReportWatcherConfig(
 data class WarningSenderOptions(
     val warningTemplate: String? = null,
     val warningItems: List<String>? = null,
+    val continuousWarningLimit: Int? = null,
 )

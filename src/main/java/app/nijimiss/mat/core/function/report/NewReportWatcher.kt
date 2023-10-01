@@ -21,6 +21,7 @@ import app.nijimiss.mat.api.misskey.FullUser
 import app.nijimiss.mat.api.misskey.admin.Report
 import app.nijimiss.mat.core.database.MATSystemDataStore
 import app.nijimiss.mat.core.database.ReportsStore
+import app.nijimiss.mat.core.database.UserStore
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
@@ -58,6 +59,7 @@ import java.util.regex.Pattern
 class NewReportWatcher(
     private val systemStore: MATSystemDataStore,
     private val reportStore: ReportsStore,
+    private val userStore: UserStore,
     private val requestManager: ApiRequestManager,
 ) : ListenerAdapter() {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
@@ -92,9 +94,11 @@ class NewReportWatcher(
             if (watcherConfig.warningSender?.warningTemplate != null && watcherConfig.warningSender.warningItems != null)
                 WarningSender(
                     reportStore,
+                    userStore,
                     requestManager,
                     watcherConfig.warningSender.warningTemplate,
-                    watcherConfig.warningSender.warningItems
+                    watcherConfig.warningSender.warningItems,
+                    watcherConfig.warningSender.continuousWarningLimit ?: 3
                 ) else {
                 null
             }
@@ -187,6 +191,8 @@ class NewReportWatcher(
                                     )
                                 }
                             }
+
+                        report.targetUser.username?.let { userStore.registerUser(it) } // 通報されたユーザーがNullになることはないはず。
                     }
                     if (reports.isNotEmpty()) systemStore.setOption("lastCheckedReport", reports[reports.size - 1].id)
                 } catch (e: JsonProcessingException) {
@@ -292,6 +298,9 @@ class NewReportWatcher(
                         reportStore.removeReport(event.message.idLong)
                         event.message.editMessageComponents().queue()
 
+                        // Update User Status
+                        userStore.updateAccountStatus(context.reportTargetUserId, "frozen")
+
                         // Resolve Report
                         if (closeReport(context, event)) {
                             val confirmButton = listOf(
@@ -340,6 +349,9 @@ class NewReportWatcher(
                         // Edit Report Embed
                         addReportStatus(event.message, "ミュート済み / Muted", event.user.name)
                         reportStore.removeReport(event.message.idLong)
+
+                        // Update User Status
+                        userStore.updateAccountStatus(context.reportTargetUserId, "muted")
 
                         // Resolve Report
                         if (closeReport(context, event)) {

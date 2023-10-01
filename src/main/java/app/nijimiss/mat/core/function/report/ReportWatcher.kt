@@ -19,6 +19,7 @@ import app.nijimiss.mat.MisskeyAdminTools
 import app.nijimiss.mat.api.misskey.admin.Report
 import app.nijimiss.mat.core.database.MATSystemDataStore
 import app.nijimiss.mat.core.database.ReportsStore
+import app.nijimiss.mat.core.database.UserStore
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
@@ -54,6 +55,7 @@ import java.util.regex.Pattern
 class ReportWatcher(
     private val systemStore: MATSystemDataStore,
     private val reportStore: ReportsStore,
+    private val userStore: UserStore,
     private val requestManager: ApiRequestManager,
 ) : ListenerAdapter() {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
@@ -88,9 +90,11 @@ class ReportWatcher(
             if (watcherConfig.warningSender?.warningTemplate != null && watcherConfig.warningSender.warningItems != null)
                 WarningSender(
                     reportStore,
+                    userStore,
                     requestManager,
                     watcherConfig.warningSender.warningTemplate,
-                    watcherConfig.warningSender.warningItems
+                    watcherConfig.warningSender.warningItems,
+                    watcherConfig.warningSender.continuousWarningLimit ?: 3
                 ) else {
                 null
             }
