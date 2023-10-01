@@ -20,9 +20,9 @@ import app.nijimiss.mat.MisskeyAdminTools
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
-import app.nijimiss.mat.core.requests.misskey.endpoints.invite.Invite
+import app.nijimiss.mat.core.requests.misskey.endpoints.admin.Invite
 import com.google.gson.Gson
-import com.google.gson.JsonObject
+import com.google.gson.JsonArray
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import page.nafuchoco.neobot.api.ConfigLoader
 import page.nafuchoco.neobot.api.command.CommandContext
@@ -80,7 +80,7 @@ class InviteManager : CommandExecutor("invite") {
 
         requestManager.addRequest(Invite(), object : ApiResponseHandler {
             override fun onSuccess(response: ApiResponse?) {
-                GSON.fromJson(response!!.body, JsonObject::class.java).get("code").asString.let {
+                GSON.fromJson(response!!.body, JsonArray::class.java)[0].asJsonObject.get("code").asString.let {
                     context.responseSender.sendMessage("Invite code: $it").setEphemeral(true).queue()
                 }
             }

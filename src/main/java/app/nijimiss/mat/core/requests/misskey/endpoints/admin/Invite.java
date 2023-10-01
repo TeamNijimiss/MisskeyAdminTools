@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package app.nijimiss.mat.core.requests.misskey.endpoints.invite;
+package app.nijimiss.mat.core.requests.misskey.endpoints.admin;
 
 import app.nijimiss.mat.core.requests.misskey.RequireCredentialRequest;
 import org.jetbrains.annotations.NotNull;
@@ -23,7 +23,7 @@ public class Invite extends RequireCredentialRequest {
     @NotNull
     @Override
     public String getEndpoint() {
-        return "api/invite/create";
+        return "api/admin/invite/create";
     }
 
     @Override
