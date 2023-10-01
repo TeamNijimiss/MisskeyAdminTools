@@ -67,6 +67,12 @@ tasks.test {
     useJUnitPlatform()
 }
 
+tasks.processResources {
+    filesMatching("module.yaml") {
+        expand("version" to version)
+    }
+}
+
 kotlin {
     jvmToolchain(17)
 }

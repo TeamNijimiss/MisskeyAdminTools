@@ -1,5 +1,5 @@
 name: "MisskeyAdminTools"
-version: 1.0.0
+version: ${version}
 authors: [ NAFU_at ]
 website: "https://nijimiss.app/"
 main: "app.nijimiss.mat.MisskeyAdminTools"
