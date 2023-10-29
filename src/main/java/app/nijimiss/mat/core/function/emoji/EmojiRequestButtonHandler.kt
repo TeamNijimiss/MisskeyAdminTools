@@ -60,7 +60,7 @@ class EmojiRequestButtonHandler(
 
                 val addEmoji = Add(
                     request.emojiName,
-                    arrayOf<String>(),
+                    request.aliases,
                     request.imageFileId,
                     null,
                     request.license,

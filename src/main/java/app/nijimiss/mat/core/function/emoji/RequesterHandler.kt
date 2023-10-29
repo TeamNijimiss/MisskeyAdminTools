@@ -26,6 +26,7 @@ interface RequesterHandler {
         emojiName: String,
         imageFileId: String,
         imageUrl: String,
+        aliases: Array<String>,
         license: String?,
         sensitive: Boolean,
         comment: String?
@@ -38,6 +39,7 @@ interface RequesterHandler {
         emojiName: String,
         imageFileId: String,
         imageUrl: String,
+        aliases: Array<String>,
         license: String?,
         sensitive: Boolean,
         comment: String?

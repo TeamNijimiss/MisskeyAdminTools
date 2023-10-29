@@ -20,6 +20,7 @@ interface Emoji {
     val emojiName: String
     val imageFileId: String
     val imageUrl: String
+    val aliases: Array<String>
     val license: String?
     val sensitive: Boolean
     val localOnly: Boolean

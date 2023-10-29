@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 data class RegisteredEmoji(
     val id: String? = null,
-    val aliases: List<String>? = null,
+    override val aliases: Array<String> = emptyArray(),
     @get:JsonProperty("name") @field:JsonProperty("name")
     override val emojiName: String,
     /** this field is always return empty string */

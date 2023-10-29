@@ -96,6 +96,15 @@ class EmojiRequester(
                 options.add(
                     CommandValueOption(
                         OptionType.STRING,
+                        "tag",
+                        "絵文字のタグ / Tag of emoji",
+                        false,
+                        false
+                    )
+                )
+                options.add(
+                    CommandValueOption(
+                        OptionType.STRING,
                         "description",
                         "絵文字の説明 / Description of emoji",
                         true,
@@ -127,6 +136,7 @@ class EmojiRequester(
                 val name = context.options["name"]?.value as String
                 val image = context.options["image"]?.value as Attachment
                 val description = context.options["description"]?.value as String
+                val tag = (context.options["tag"]?.value as String?)?.split(" ") ?: emptyList()
                 val license = context.options["license"]?.value as String?
                 val isSensitive = context.options["sensitive"]?.value as Boolean? ?: false
 
@@ -220,6 +230,7 @@ class EmojiRequester(
                             name,
                             uploadedFile[0]!!,
                             uploadedFile[1]!!,
+                            tag.toTypedArray(),
                             license,
                             isSensitive,
                             description

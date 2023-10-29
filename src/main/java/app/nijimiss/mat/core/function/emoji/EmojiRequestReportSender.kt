@@ -44,6 +44,7 @@ class EmojiRequestReportSender(
         emojiName: String,
         imageFileId: String,
         imageUrl: String,
+        aliases: Array<String>,
         license: String?,
         sensitive: Boolean,
         comment: String?
@@ -55,6 +56,7 @@ class EmojiRequestReportSender(
                 emojiName,
                 imageFileId,
                 imageUrl,
+                aliases,
                 license,
                 sensitive,
                 false,
@@ -71,6 +73,7 @@ class EmojiRequestReportSender(
                 "$requesterId (${accountsStore.getMisskeyId(requesterId)})", false
             )
             .addField("絵文字名 / Emoji name", emojiName, false)
+            .addField("エイリアス / Aliases", aliases.joinToString(", "), false)
             .addField("ライセンス / License", license ?: "None", false)
             .addField("NSFW", sensitive.toString(), false)
             .addField("コメント / Comment", comment ?: "None", false)
@@ -94,6 +97,7 @@ class EmojiRequestReportSender(
         emojiName: String,
         imageFileId: String,
         imageUrl: String,
+        aliases: Array<String>,
         license: String?,
         sensitive: Boolean,
         comment: String?
