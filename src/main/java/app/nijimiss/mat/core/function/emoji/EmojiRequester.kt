@@ -86,6 +86,15 @@ class EmojiRequester(
                 )
                 options.add(
                     CommandValueOption(
+                        OptionType.STRING,
+                        "description",
+                        "絵文字の説明 / Description of emoji",
+                        true,
+                        false
+                    )
+                )
+                options.add(
+                    CommandValueOption(
                         OptionType.ATTACHMENT,
                         "image",
                         "絵文字の画像 / Image of emoji",
@@ -99,15 +108,6 @@ class EmojiRequester(
                         "tag",
                         "絵文字のタグ / Tag of emoji",
                         false,
-                        false
-                    )
-                )
-                options.add(
-                    CommandValueOption(
-                        OptionType.STRING,
-                        "description",
-                        "絵文字の説明 / Description of emoji",
-                        true,
                         false
                     )
                 )
