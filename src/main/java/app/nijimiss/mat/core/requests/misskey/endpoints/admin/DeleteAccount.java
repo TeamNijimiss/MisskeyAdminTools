@@ -14,15 +14,25 @@
  * limitations under the License.
  */
 
-package app.nijimiss.mat.api.misskey
+package app.nijimiss.mat.core.requests.misskey.endpoints.admin;
 
-import com.fasterxml.jackson.annotation.JsonProperty
+import app.nijimiss.mat.core.requests.misskey.RequireCredentialRequest;
+import org.jetbrains.annotations.NotNull;
 
-data class Channel(
-    val id: String? = null,
-    val name: String? = null,
-    val color: String? = null,
-    @get:JsonProperty("isSensitive") @field:JsonProperty("isSensitive")
-    val isSensitive: Boolean? = null,
-    val allowRenoteToExternal: Boolean? = null,
-)
+public class DeleteAccount extends RequireCredentialRequest {
+
+    public DeleteAccount(@NotNull String userId) {
+        add("userId", userId);
+    }
+
+    @NotNull
+    @Override
+    public String getEndpoint() {
+        return "api/admin/delete-account";
+    }
+
+    @Override
+    public int getSuccessCode() {
+        return 204;
+    }
+}

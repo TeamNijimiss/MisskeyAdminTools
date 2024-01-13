@@ -14,15 +14,8 @@
  * limitations under the License.
  */
 
-package app.nijimiss.mat.api.misskey
+package app.nijimiss.mat.core.requests.misskey.elements;
 
-import com.fasterxml.jackson.annotation.JsonProperty
-
-data class Channel(
-    val id: String? = null,
-    val name: String? = null,
-    val color: String? = null,
-    @get:JsonProperty("isSensitive") @field:JsonProperty("isSensitive")
-    val isSensitive: Boolean? = null,
-    val allowRenoteToExternal: Boolean? = null,
-)
+public enum Origin {
+    COMBINED, LOCAL, REMOTE
+}

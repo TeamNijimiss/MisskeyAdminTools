@@ -24,6 +24,7 @@ import app.nijimiss.mat.core.function.report.NewReportWatcher;
 import app.nijimiss.mat.core.function.report.ReportWatcher;
 import app.nijimiss.mat.core.function.role.OldDataImporter;
 import app.nijimiss.mat.core.function.role.RoleSynchronizer;
+import app.nijimiss.mat.core.function.tools.DeleteSuspendedUsers;
 import app.nijimiss.mat.core.requests.ApiRequestManager;
 import net.dv8tion.jda.api.JDA;
 import page.nafuchoco.neobot.api.ConfigLoader;
@@ -108,16 +109,18 @@ public class MisskeyAdminTools extends NeoModule {
                 accountLinker.registerHandler(roleSynchronizer);
             }
 
-        if (config.getFunction().getEmojiManager()) {
+            if (config.getFunction().getEmojiManager()) {
                 emojiRequester = new EmojiRequester(accountsStore, emojiStore, apiRequestManager);
                 registerCommand(emojiRequester);
-        }
+            }
         }
 
         if (config.getFunction().getInviteManager()) {
             inviteManager = new InviteManager();
             registerCommand(inviteManager);
         }
+
+        registerCommand(new DeleteSuspendedUsers(apiRequestManager));
 
         var migrateFolder = new File(getDataFolder(), "migrate");
         if (!migrateFolder.exists())
