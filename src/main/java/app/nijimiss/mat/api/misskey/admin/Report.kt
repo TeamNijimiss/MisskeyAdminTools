@@ -37,5 +37,6 @@ data class Report(
     val reporter: FullUser? = null,
     val targetUser: FullUser? = null,
     val assignee: Any? = null,
-    val forwarded: Boolean? = null
+    val forwarded: Boolean? = null,
+    val category: String? = null,
 )

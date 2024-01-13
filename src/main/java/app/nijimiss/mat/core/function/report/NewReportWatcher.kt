@@ -161,6 +161,13 @@ class NewReportWatcher(
                                 "通報された日時 / Reported Date", it, true
                             )
                         }
+                        StringUtils.defaultIfEmpty(
+                            convertCategoryToHumanReadable(report.category), "N/A"
+                        )?.let {
+                            embedBuilder.addField(
+                                "通報カテゴリー / Report Category", it, true
+                            )
+                        }
                         for (noteInfo in noteIds) {
                             embedBuilder.addField(
                                 "通報された投稿 / Reported Note", noteInfo, true
@@ -514,6 +521,24 @@ class NewReportWatcher(
         }).join()
 
         return result
+    }
+
+    fun convertCategoryToHumanReadable(category: String?): String {
+        return when (category) {
+            "nsfw" -> "センシティブなコンテンツを含む投稿 / NSFW"
+            "spam" -> "スパム / Spam"
+            "explicit" -> "暴力もしくは攻撃的な投稿 / Explicit"
+            "phishing" -> "フィッシングもしくは詐欺行為 / Phishing"
+            "personalInfoLeak" -> "本人もしくは他人の個人情報の漏えい / Personal Info Leak"
+            "selfHarm" -> "自殺もしくは自害など生命に関わる問題 / Self Harm"
+            "criticalBreach" -> "重大な規約違反 / Critical Breach"
+            "otherBreach" -> "その他の規約違反 / Other Breach"
+            "spoofing" -> "なりすまし / Spoofing"
+            "violationRights" -> "権利侵害もしくはなりすまし（本人） / Violation of Rights"
+            "violationRightsOther" -> "権利侵害（他人） / Other Violation of Rights"
+            "notLike" -> "この人が気に入らない / Not Like"
+            else -> "不明 / Unknown"
+        }
     }
 
     companion object {
