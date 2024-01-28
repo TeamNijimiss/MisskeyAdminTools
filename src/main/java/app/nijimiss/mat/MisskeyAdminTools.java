@@ -93,6 +93,8 @@ public class MisskeyAdminTools extends NeoModule {
             getModuleLogger().error("Failed to create a table in the database.", e);
         }
 
+        var userGuilds = config.getAuthentication().getSuperGuildIds().stream().map(id -> instance.getJDA().getGuildById(id)).toList();
+
         // Start the function.
         apiRequestManager = new ApiRequestManager(config.getAuthentication().getInstanceHostname(),
                 config.getAuthentication().getInstanceToken());
@@ -120,7 +122,7 @@ public class MisskeyAdminTools extends NeoModule {
             registerCommand(inviteManager);
         }
 
-        registerCommand(new DeleteSuspendedUsers(apiRequestManager));
+        userGuilds.forEach(guild -> registerCommand(new DeleteSuspendedUsers(apiRequestManager), null, guild));
 
         var migrateFolder = new File(getDataFolder(), "migrate");
         if (!migrateFolder.exists())

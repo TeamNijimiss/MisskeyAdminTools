@@ -27,6 +27,9 @@ data class Authentication(
 
     @get:JsonProperty("superUserRoleIds") @field:JsonProperty("superUserRoleIds")
     val superUserRoleIds: List<Long>? = null,
+
+    @get:JsonProperty("superGuildIds") @field:JsonProperty("superGuildIds")
+    val superGuildIds: List<Long>? = null,
 )
 
 data class MATConfig(

@@ -42,7 +42,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
     implementation("com.github.devcsrj:slf4j-okhttp3-logging-interceptor:1.0.1")
-    compileOnly("com.github.NeoBotDevelopment:NeoBotApi:2.0.0-alpha.6")
+    compileOnly("com.github.NeoBotDevelopment:NeoBotApi:2.2.0")
 
     implementation("com.konghq:unirest-java:3.14.5")
 
