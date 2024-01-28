@@ -154,6 +154,42 @@ class EmojiRequester(
                     return
                 }
 
+                // name length check
+                if (name.length > 32) {
+                    context.responseSender.sendMessage("絵文字の名前は32文字以内で入力してください。 / Please enter the name of the emoji within 32 characters.")
+                        .setEphemeral(true).queue()
+                    return
+                }
+
+                // ailiases length check
+                if (tag.joinToString(",").length > 127) {
+                    context.responseSender.sendMessage("絵文字のタグは127文字以内で入力してください。 / Please enter the tag of the emoji within 127 characters.")
+                        .setEphemeral(true).queue()
+                    return
+                }
+
+                // license length check
+                if ((license?.length ?: 0) > 127) {
+                    context.responseSender.sendMessage("絵文字のライセンスは127文字以内で入力してください。 / Please enter the license of the emoji within 127 characters.")
+                        .setEphemeral(true).queue()
+                    return
+                }
+
+                // comment length check
+                if (description.length > 256) {
+                    context.responseSender.sendMessage("絵文字の説明は256文字以内で入力してください。 / Please enter the description of the emoji within 256 characters.")
+                        .setEphemeral(true).queue()
+                    return
+                }
+
+                // check request limit per month
+                val requestCount = emojiStore.countEmojiRequestLastMonth(context.invoker.idLong)
+                if (requestCount >= getRequestLimit(context.invoker)) {
+                    context.responseSender.sendMessage("絵文字のリクエスト数が上限に達しています。 / The number of emoji requests has reached the limit.")
+                        .setEphemeral(true).queue()
+                    return
+                }
+
                 // check exist emoji
                 val existsEmoji = emojiManager.getEmoji(name)
                 if (existsEmoji != null) {
@@ -207,13 +243,6 @@ class EmojiRequester(
                     return
                 }
 
-                // check request limit per month
-                val requestCount = emojiStore.countEmojiRequestLastMonth(context.invoker.idLong)
-                if (requestCount >= getRequestLimit(context.invoker)) {
-                    context.responseSender.sendMessage("絵文字のリクエスト数が上限に達しています。 / The number of emoji requests has reached the limit.")
-                        .setEphemeral(true).queue()
-                    return
-                }
 
                 // Upload emoji image file to Misskey
                 uploadImage(image).let { uploadedFile ->

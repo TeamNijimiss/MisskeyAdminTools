@@ -223,7 +223,7 @@ class EmojiStore(connector: DatabaseConnector) : DatabaseTable(connector, "emoji
     fun countEmojiRequestLastMonth(requesterId: Long): Int {
         connector.connection.use { connection ->
             connection.prepareStatement(
-                "SELECT COUNT(*) FROM $tableName WHERE requester_id = ? AND created_at > DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 MONTH)"
+                "SELECT COUNT(*) FROM $tableName WHERE requester_id = ? AND YEAR(created_at) = YEAR(CURRENT_DATE) AND MONTH(created_at) = MONTH(CURRENT_DATE)"
             ).use { ps ->
                 ps.setLong(1, requesterId)
                 ps.executeQuery().use { rs ->

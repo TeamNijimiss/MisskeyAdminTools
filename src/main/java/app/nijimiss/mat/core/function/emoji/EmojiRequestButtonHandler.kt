@@ -90,6 +90,8 @@ class EmojiRequestButtonHandler(
             }
 
             "deny" -> {
+                event.deferEdit().queue()
+
                 val embedBuilder = EmbedBuilder(event.message.embeds[0])
                     .setColor(Color.GRAY)
                     .setDescription("Emoji has been denied.")
