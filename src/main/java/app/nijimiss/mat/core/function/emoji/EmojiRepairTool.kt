@@ -172,6 +172,8 @@ class EmojiRepairTool(
                             emoji.license,
                             emoji.isSensitive!!,
                             emoji.localOnly!!,
+                            emoji.requestedBy,
+                            emoji.memo,
                             emoji.roleIDSThatCanBeUsedThisEmojiAsReaction!!.toTypedArray()
                         ),
                         object : ApiResponseHandler {

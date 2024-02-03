@@ -283,7 +283,7 @@ class EmojiRequester(
         registerHandler(EmojiRequestReportSender(accountsStore, emojiStore, emojiManagerConfig.targetReportChannel))
         MisskeyAdminTools.getInstance().jda.addEventListener(
             EmojiRequestButtonHandler(
-                this,
+                accountsStore,
                 emojiStore,
                 requestManager,
             )

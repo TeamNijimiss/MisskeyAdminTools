@@ -29,6 +29,8 @@ public class Add extends RequireCredentialRequest {
                @Nullable String license,
                boolean isSensitive,
                boolean localOnly,
+               @Nullable String requestedBy,
+               @Nullable String memo,
                @NotNull String[] roleIdsThatCanBeUsedThisEmojiAsReaction) {
         add("name", name);
         add("aliases", aliases);
@@ -37,6 +39,8 @@ public class Add extends RequireCredentialRequest {
         add("license", license);
         add("isSensitive", isSensitive);
         add("localOnly", localOnly);
+        add("requestedBy", requestedBy);
+        add("memo", memo);
         add("roleIdsThatCanBeUsedThisEmojiAsReaction", roleIdsThatCanBeUsedThisEmojiAsReaction);
     }
 

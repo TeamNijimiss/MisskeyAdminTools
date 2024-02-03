@@ -25,4 +25,5 @@ data class Channel(
     @get:JsonProperty("isSensitive") @field:JsonProperty("isSensitive")
     val isSensitive: Boolean? = null,
     val allowRenoteToExternal: Boolean? = null,
+    val userId: String? = null,
 )

@@ -18,6 +18,7 @@ package app.nijimiss.mat.core.function.emoji
 
 import app.nijimiss.mat.MisskeyAdminTools
 import app.nijimiss.mat.api.misskey.Emoji
+import app.nijimiss.mat.core.database.AccountsStore
 import app.nijimiss.mat.core.database.EmojiStore
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
@@ -31,7 +32,7 @@ import page.nafuchoco.neobot.api.module.NeoModuleLogger
 import java.awt.Color
 
 class EmojiRequestButtonHandler(
-    private val emojiRequester: EmojiRequester,
+    private val accountsStore: AccountsStore,
     private val emojiStore: EmojiStore,
     private val requestManager: ApiRequestManager,
 ) : ListenerAdapter() {
@@ -58,6 +59,8 @@ class EmojiRequestButtonHandler(
 
                 event.deferEdit().queue()
 
+                val requesterId = accountsStore.getMisskeyId(request.requesterId)
+
                 val addEmoji = Add(
                     request.emojiName,
                     request.aliases,
@@ -66,6 +69,8 @@ class EmojiRequestButtonHandler(
                     request.license,
                     request.sensitive,
                     request.localOnly,
+                    requesterId,
+                    null,
                     arrayOf<String>()
                 )
                 requestManager.addRequest(addEmoji, object : ApiResponseHandler {

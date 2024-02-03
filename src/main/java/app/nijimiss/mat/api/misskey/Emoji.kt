@@ -20,6 +20,8 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 data class Emoji(
     val id: String? = null,
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
     val aliases: List<String>? = null,
     val name: String? = null,
     val category: String? = null,
@@ -31,6 +33,8 @@ data class Emoji(
     val isSensitive: Boolean? = null,
 
     val localOnly: Boolean? = null,
+    val requestedBy: String? = null,
+    val memo: String? = null,
 
     @get:JsonProperty("roleIdsThatCanBeUsedThisEmojiAsReaction") @field:JsonProperty("roleIdsThatCanBeUsedThisEmojiAsReaction")
     val roleIDSThatCanBeUsedThisEmojiAsReaction: List<String>? = null

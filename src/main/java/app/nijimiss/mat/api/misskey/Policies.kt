@@ -23,12 +23,19 @@ data class Policies(
     val ltlAvailable: Boolean? = null,
     val canPublicNote: Boolean? = null,
     val canInvite: Boolean? = null,
+    val inviteLimit: Long? = null,
+    val inviteLimitCycle: Long? = null,
+    val inviteExpirationTime: Long? = null,
     val canManageCustomEmojis: Boolean? = null,
+    val canManageAvatarDecorations: Boolean? = null,
+    val canSearchNotes: Boolean? = null,
+    val canUseTranslator: Boolean? = null,
     val canHideAds: Boolean? = null,
 
     @get:JsonProperty("driveCapacityMb") @field:JsonProperty("driveCapacityMb")
     val driveCapacityMB: Long? = null,
 
+    val alwaysMarkNsfw: Boolean? = null,
     val pinLimit: Long? = null,
     val antennaLimit: Long? = null,
     val wordMuteLimit: Long? = null,
@@ -37,5 +44,6 @@ data class Policies(
     val noteEachClipsLimit: Long? = null,
     val userListLimit: Long? = null,
     val userEachUserListsLimit: Long? = null,
-    val rateLimitFactor: Double? = null
+    val rateLimitFactor: Double? = null,
+    val avatarDecorationLimit: Long? = null
 )
