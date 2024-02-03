@@ -89,7 +89,14 @@ class EmojiRequestButtonHandler(
                     }
 
                     override fun onFailure(response: ApiResponse?) {
-                        TODO("Not yet implemented")
+                        event.hook.sendMessage(
+                            """
+                            An error occurred while adding the emoji.
+                            ```
+                            ${response?.body}
+                            ```
+                        """.trimIndent()
+                        ).queue()
                     }
                 })
             }

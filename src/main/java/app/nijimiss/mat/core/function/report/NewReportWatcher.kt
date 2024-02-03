@@ -411,31 +411,35 @@ class NewReportWatcher(
                 reportStore.removeReport(event.message.idLong)
 
                 // Resolve Report
-                if (closeReport(context, event)) {
-                    val confirmButton = listOf(
-                        Button.danger(
-                            "closure_close_${event.messageId}",
-                            "同一投稿への通報を自動的にクローズしますか？ / Close report to same post?"
-                        ),
-                        Button.secondary("mod_clear_${processId}", "キャンセル / Cancel")
-                    ).map { ActionRow.of(it) }
-                    event.message.editMessageComponents(confirmButton).queue()
-                }
+                Thread {
+                    if (closeReport(context, event)) {
+                        val confirmButton = listOf(
+                            Button.danger(
+                                "closure_close_${event.messageId}",
+                                "同一投稿への通報を自動的にクローズしますか？ / Close report to same post?"
+                            ),
+                            Button.secondary("mod_clear_${processId}", "キャンセル / Cancel")
+                        ).map { ActionRow.of(it) }
+                        event.message.editMessageComponents(confirmButton).queue()
+                    }
+                }.start()
             }
 
             "noaction" -> {
                 // Resolve Report
-                if (closeReport(context, event)) {
-                    event.hook.sendMessage(
-                        """
+                Thread {
+                    if (closeReport(context, event)) {
+                        event.hook.sendMessage(
+                            """
                         無効通報として登録しました。
                         Registered as an invalid report.
                         """.trimIndent()
-                    ).setEphemeral(true).queue()
-                    event.message.delete().queue {
-                        reportStore.removeReport(event.message.idLong)
+                        ).setEphemeral(true).queue()
+                        event.message.delete().queue {
+                            reportStore.removeReport(event.message.idLong)
+                        }
                     }
-                }
+                }.start()
             }
 
             "main" -> {
