@@ -40,7 +40,7 @@ public class Add extends RequireCredentialRequest {
         add("isSensitive", isSensitive);
         add("localOnly", localOnly);
         add("requestedBy", requestedBy);
-        add("memo", memo);
+        add("memo", memo == null ? "" : memo);
         add("roleIdsThatCanBeUsedThisEmojiAsReaction", roleIdsThatCanBeUsedThisEmojiAsReaction);
     }
 
