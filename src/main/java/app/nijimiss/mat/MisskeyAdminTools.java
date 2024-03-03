@@ -103,7 +103,7 @@ public class MisskeyAdminTools extends NeoModule {
             newReportWatcher = new NewReportWatcher(systemDataStore, reportsStore, userStore, apiRequestManager);
         }
         if (config.getFunction().getAccountLinker()) {
-            accountLinker = new DiscordMisskeyAccountLinker(systemDataStore, accountsStore, apiRequestManager);
+            accountLinker = new DiscordMisskeyAccountLinker(accountsStore, apiRequestManager);
             registerCommand(accountLinker);
 
             if (config.getFunction().getRoleSynchronizer()) {

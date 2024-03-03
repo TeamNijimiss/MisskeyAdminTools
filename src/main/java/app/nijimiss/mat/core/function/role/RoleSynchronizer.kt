@@ -23,16 +23,13 @@ import app.nijimiss.mat.core.function.link.LinkerHandler
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
-import app.nijimiss.mat.core.requests.misskey.endpoints.admin.roles.Assign
 import app.nijimiss.mat.core.requests.misskey.endpoints.admin.roles.Unassign
 import app.nijimiss.mat.core.requests.misskey.endpoints.users.Show
 import com.fasterxml.jackson.databind.ObjectMapper
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
-import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent
-import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent
-import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleRemoveEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 import page.nafuchoco.neobot.api.ConfigLoader
 import page.nafuchoco.neobot.api.command.CommandContext
@@ -41,6 +38,8 @@ import page.nafuchoco.neobot.api.module.NeoModuleLogger
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class RoleSynchronizer(
     private val accountsStore: AccountsStore,
@@ -80,10 +79,7 @@ class RoleSynchronizer(
             override fun onInvoke(context: CommandContext) {
                 if (context.invoker.roles.map { it.idLong }.contains(synchronizerConfig.adminRole)) {
                     context.responseSender.sendMessage("同期を開始します。 / Start synchronization.").queue()
-                    accountsStore.getMisskeyAccounts().forEach { misskeyId ->
-                        val discordId = accountsStore.getDiscordId(misskeyId)
-                        synchronizeRole(discordId!!, misskeyId)
-                    }
+                    reSync()
                 } else {
                     context.responseSender.sendMessage("このコマンドを実行する権限がありません。 / You do not have permission to run this command.")
                         .queue()
@@ -94,63 +90,47 @@ class RoleSynchronizer(
                 return "DiscordアカウントとMisskeyアカウントのロールを再同期します。 / Resynchronize Discord and Misskey account roles."
             }
         })
+
+        val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
+        scheduledExecutor.scheduleAtFixedRate({ reSync() }, 0, 2, TimeUnit.HOURS)
+    }
+
+    private fun reSync() {
+        accountsStore.getMisskeyAccounts().forEach { misskeyId ->
+            val discordId = accountsStore.getDiscordId(misskeyId)
+            val discordMember = targetGuild.getMemberById(discordId!!)
+            if (discordMember == null) {
+                accountsStore.removeAccount(discordId)
+                logger.info("Removed the account of the user who left the server.: {}", discordId)
+            } else {
+                synchronizeRole(discordMember, misskeyId)
+            }
+        }
     }
 
     override fun onLink(discordId: Long, misskeyId: String) {
-        synchronizeRole(discordId, misskeyId)
+        synchronizeRole(targetGuild.getMemberById(discordId)!!, misskeyId)
     }
 
     override fun onUnlink(discordId: Long, misskeyId: String) {
-        unassignAllRoles(misskeyId)
+        unassignAllRoles(targetGuild.getMemberById(discordId)!!)
     }
 
-    override fun onGuildMemberRoleAdd(event: GuildMemberRoleAddEvent) {
-        val misskeyId = accountsStore.getMisskeyId(event.user.idLong)
-        if (misskeyId != null) synchronizeRole(event.user.idLong, misskeyId)
-    }
-
-    override fun onGuildMemberRoleRemove(event: GuildMemberRoleRemoveEvent) {
-        val misskeyId = accountsStore.getMisskeyId(event.user.idLong)
-        if (misskeyId != null) synchronizeRole(event.user.idLong, misskeyId)
-    }
-
-    override fun onGuildMemberRemove(event: GuildMemberRemoveEvent) {
-        val misskeyId = accountsStore.getMisskeyId(event.user.idLong)
-        if (misskeyId != null) unassignAllRoles(misskeyId)
-    }
-
-    private fun synchronizeRole(discordId: Long, misskeyId: String) {
+    private fun synchronizeRole(discordMember: Member, misskeyId: String) {
         val show = Show(misskeyId, Show.SearchType.ID)
         requestManager.addRequest(show, object : ApiResponseHandler {
             override fun onSuccess(response: ApiResponse?) {
                 val user = MAPPER.readValue(response!!.body, FullUser::class.java)
                 val misskeyRoles = user.roles?.map { it.id }
-                val discordRoles = targetGuild.getMemberById(discordId)?.roles?.map { it.idLong }
+                val discordRoles = discordMember.roles.map { it.idLong }
 
                 // role synchronization
                 synchronizerConfig.roleAssign.forEach { role ->
-                    if (misskeyRoles?.contains(role.misskeyRole) == true && discordRoles?.contains(role.discordRole) == false) {
-                        val unassign = Unassign(misskeyId, role.misskeyRole!!)
-                        requestManager.addRequest(unassign, object : ApiResponseHandler {
-                            override fun onSuccess(response: ApiResponse?) {
-                                logger.debug("Unassigned role from user $misskeyId.")
-                            }
-
-                            override fun onFailure(response: ApiResponse?) {
-                                logger.error("Failed to unassigned role from user.", response!!.body)
-                            }
-                        })
-                    } else if (misskeyRoles?.contains(role.misskeyRole) == false && discordRoles?.contains(role.discordRole) == true) {
-                        val assign = Assign(misskeyId, role.misskeyRole!!)
-                        requestManager.addRequest(assign, object : ApiResponseHandler {
-                            override fun onSuccess(response: ApiResponse?) {
-                                logger.debug("Assigned role to user $misskeyId.")
-                            }
-
-                            override fun onFailure(response: ApiResponse?) {
-                                logger.error("Failed to assign role to user.", response!!.body)
-                            }
-                        })
+                    if (misskeyRoles?.contains(role.misskeyRole) == true && !discordRoles.contains(role.discordRole)) {
+                        targetGuild.addRoleToMember(discordMember, targetGuild.getRoleById(role.discordRole)!!).queue()
+                    } else if (misskeyRoles?.contains(role.misskeyRole) == false && discordRoles.contains(role.discordRole)) {
+                        targetGuild.removeRoleFromMember(discordMember, targetGuild.getRoleById(role.discordRole)!!)
+                            .queue()
                     }
                 }
             }
@@ -159,6 +139,14 @@ class RoleSynchronizer(
                 logger.error("Failed to get user information.", response!!.body)
             }
         })
+    }
+
+    private fun unassignAllRoles(discordMember: Member) {
+        synchronizerConfig.roleAssign.forEach { role ->
+            if (discordMember.roles.map { it.idLong }.contains(role.discordRole)) {
+                targetGuild.removeRoleFromMember(discordMember, targetGuild.getRoleById(role.discordRole)!!).queue()
+            }
+        }
     }
 
     private fun unassignAllRoles(misskeyId: String) {

@@ -119,4 +119,28 @@ class AccountsStore(connector: DatabaseConnector) : DatabaseTable(connector, "ac
         }
         return accounts
     }
+
+    @Throws(SQLException::class)
+    fun removeAccount(discordId: Long) {
+        connector.connection.use { connection ->
+            connection.prepareStatement(
+                "DELETE FROM $tableName WHERE discord_id = ?"
+            ).use { ps ->
+                ps.setLong(1, discordId)
+                ps.execute()
+            }
+        }
+    }
+
+    @Throws(SQLException::class)
+    fun removeAccount(misskeyId: String) {
+        connector.connection.use { connection ->
+            connection.prepareStatement(
+                "DELETE FROM $tableName WHERE misskey_id = ?"
+            ).use { ps ->
+                ps.setString(1, misskeyId)
+                ps.execute()
+            }
+        }
+    }
 }

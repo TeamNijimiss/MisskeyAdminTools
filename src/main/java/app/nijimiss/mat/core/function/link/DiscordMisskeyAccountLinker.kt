@@ -19,7 +19,6 @@ package app.nijimiss.mat.core.function.link
 import app.nijimiss.mat.MisskeyAdminTools
 import app.nijimiss.mat.api.misskey.FullUser
 import app.nijimiss.mat.core.database.AccountsStore
-import app.nijimiss.mat.core.database.MATSystemDataStore
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
@@ -34,7 +33,6 @@ import java.util.*
 
 
 class DiscordMisskeyAccountLinker(
-    private val systemStore: MATSystemDataStore,
     private val accountsStore: AccountsStore,
     private val requestManager: ApiRequestManager,
 ) : CommandExecutor("link") {
