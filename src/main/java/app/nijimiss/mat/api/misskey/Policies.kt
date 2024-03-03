@@ -22,6 +22,7 @@ data class Policies(
     val gtlAvailable: Boolean? = null,
     val ltlAvailable: Boolean? = null,
     val canPublicNote: Boolean? = null,
+    val mentionLimit: Long? = null,
     val canInvite: Boolean? = null,
     val inviteLimit: Long? = null,
     val inviteLimitCycle: Long? = null,
@@ -29,6 +30,7 @@ data class Policies(
     val canManageCustomEmojis: Boolean? = null,
     val canManageAvatarDecorations: Boolean? = null,
     val canSearchNotes: Boolean? = null,
+    val canUseAdvancesSearch: Boolean? = null,
     val canUseTranslator: Boolean? = null,
     val canHideAds: Boolean? = null,
 
@@ -40,6 +42,7 @@ data class Policies(
     val antennaLimit: Long? = null,
     val wordMuteLimit: Long? = null,
     val webhookLimit: Long? = null,
+    val accessTokenLimit: Long? = null,
     val clipLimit: Long? = null,
     val noteEachClipsLimit: Long? = null,
     val userListLimit: Long? = null,
