@@ -37,6 +37,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MisskeyAdminTools extends NeoModule {
     private static MisskeyAdminTools instance;
@@ -46,7 +48,7 @@ public class MisskeyAdminTools extends NeoModule {
     private UserStore userStore;
     private AccountsStore accountsStore;
     private EmojiStore emojiStore;
-    private ApiRequestManager apiRequestManager;
+    private Map<String, ApiRequestManager> apiRequestManagers;
 
     private ReportWatcher reportWatcher;
     private NewReportWatcher newReportWatcher;
@@ -96,23 +98,29 @@ public class MisskeyAdminTools extends NeoModule {
         var userGuilds = config.getAuthentication().getSuperGuildIds().stream().map(id -> instance.getJDA().getGuildById(id)).toList();
 
         // Start the function.
-        apiRequestManager = new ApiRequestManager(config.getAuthentication().getInstanceHostname(),
-                config.getAuthentication().getInstanceToken());
+        apiRequestManagers = new HashMap<>();
+        apiRequestManagers.put("default", new ApiRequestManager(config.getAuthentication().getInstanceHostname(),
+                config.getAuthentication().getInstanceToken()));
+        apiRequestManagers.put("admin", new ApiRequestManager(config.getAuthentication().getInstanceHostname(),
+                config.getAuthentication().getInstanceToken()));
+        apiRequestManagers.put("sync", new ApiRequestManager(config.getAuthentication().getInstanceHostname(),
+                config.getAuthentication().getInstanceToken()));
+
         if (config.getFunction().getReportWatcher()) {
-            reportWatcher = new ReportWatcher(systemDataStore, reportsStore, userStore, apiRequestManager);
-            newReportWatcher = new NewReportWatcher(systemDataStore, reportsStore, userStore, apiRequestManager);
+            reportWatcher = new ReportWatcher(systemDataStore, reportsStore, userStore, apiRequestManagers.get("admin"));
+            newReportWatcher = new NewReportWatcher(systemDataStore, reportsStore, userStore, apiRequestManagers.get("admin"));
         }
         if (config.getFunction().getAccountLinker()) {
-            accountLinker = new DiscordMisskeyAccountLinker(accountsStore, apiRequestManager);
+            accountLinker = new DiscordMisskeyAccountLinker(accountsStore, apiRequestManagers.get("default"));
             registerCommand(accountLinker);
 
             if (config.getFunction().getRoleSynchronizer()) {
-                roleSynchronizer = new RoleSynchronizer(accountsStore, apiRequestManager);
+                roleSynchronizer = new RoleSynchronizer(accountsStore, apiRequestManagers.get("sync"));
                 accountLinker.registerHandler(roleSynchronizer);
             }
 
             if (config.getFunction().getEmojiManager()) {
-                emojiRequester = new EmojiRequester(accountsStore, emojiStore, apiRequestManager);
+                emojiRequester = new EmojiRequester(accountsStore, emojiStore, apiRequestManagers.get("default"));
                 registerCommand(emojiRequester);
             }
         }
@@ -122,7 +130,7 @@ public class MisskeyAdminTools extends NeoModule {
             registerCommand(inviteManager);
         }
 
-        userGuilds.forEach(guild -> registerCommand(new DeleteSuspendedUsers(apiRequestManager), null, guild));
+        userGuilds.forEach(guild -> registerCommand(new DeleteSuspendedUsers(apiRequestManagers.get("admin")), null, guild));
 
         var migrateFolder = new File(getDataFolder(), "migrate");
         if (!migrateFolder.exists())
@@ -135,7 +143,7 @@ public class MisskeyAdminTools extends NeoModule {
     public void onDisable() {
         reportWatcher.shutdown();
         newReportWatcher.shutdown();
-        apiRequestManager.shutdown();
+        apiRequestManagers.forEach((key, manager) -> manager.shutdown());
     }
 
     public JDA getJDA() {
