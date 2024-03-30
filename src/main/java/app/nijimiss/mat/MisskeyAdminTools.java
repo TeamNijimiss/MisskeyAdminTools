@@ -16,16 +16,15 @@
 
 package app.nijimiss.mat;
 
-import app.nijimiss.mat.core.database.*;
+import app.nijimiss.mat.core.function.ad.AdRequester;
 import app.nijimiss.mat.core.function.emoji.EmojiRequester;
 import app.nijimiss.mat.core.function.invite.InviteManager;
 import app.nijimiss.mat.core.function.link.DiscordMisskeyAccountLinker;
 import app.nijimiss.mat.core.function.report.NewReportWatcher;
-import app.nijimiss.mat.core.function.report.ReportWatcher;
-import app.nijimiss.mat.core.function.role.OldDataImporter;
 import app.nijimiss.mat.core.function.role.RoleSynchronizer;
 import app.nijimiss.mat.core.function.tools.DeleteSuspendedUsers;
 import app.nijimiss.mat.core.requests.ApiRequestManager;
+import app.nijimiss.mat.database.*;
 import net.dv8tion.jda.api.JDA;
 import page.nafuchoco.neobot.api.ConfigLoader;
 import page.nafuchoco.neobot.api.NeoBot;
@@ -36,7 +35,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,13 +46,14 @@ public class MisskeyAdminTools extends NeoModule {
     private UserStore userStore;
     private AccountsStore accountsStore;
     private EmojiStore emojiStore;
+    private AdStore adStore;
     private Map<String, ApiRequestManager> apiRequestManagers;
 
-    private ReportWatcher reportWatcher;
     private NewReportWatcher newReportWatcher;
     private DiscordMisskeyAccountLinker accountLinker;
     private RoleSynchronizer roleSynchronizer;
     private EmojiRequester emojiRequester;
+    private AdRequester adRequester;
     private InviteManager inviteManager;
 
     public static MisskeyAdminTools getInstance() {
@@ -91,6 +90,8 @@ public class MisskeyAdminTools extends NeoModule {
             accountsStore.createTable();
             emojiStore = new EmojiStore(getLauncher().getDatabaseConnector());
             emojiStore.createTable();
+            adStore = new AdStore(getLauncher().getDatabaseConnector());
+            adStore.createTable();
         } catch (SQLException e) {
             getModuleLogger().error("Failed to create a table in the database.", e);
         }
@@ -107,7 +108,6 @@ public class MisskeyAdminTools extends NeoModule {
                 config.getAuthentication().getInstanceToken()));
 
         if (config.getFunction().getReportWatcher()) {
-            reportWatcher = new ReportWatcher(systemDataStore, reportsStore, userStore, apiRequestManagers.get("admin"));
             newReportWatcher = new NewReportWatcher(systemDataStore, reportsStore, userStore, apiRequestManagers.get("admin"));
         }
         if (config.getFunction().getAccountLinker()) {
@@ -123,6 +123,11 @@ public class MisskeyAdminTools extends NeoModule {
                 emojiRequester = new EmojiRequester(accountsStore, emojiStore, apiRequestManagers.get("default"));
                 registerCommand(emojiRequester);
             }
+
+            if (config.getFunction().getAdManager()) {
+                adRequester = new AdRequester(accountsStore, adStore, apiRequestManagers.get("default"));
+                registerCommand(adRequester);
+            }
         }
 
         if (config.getFunction().getInviteManager()) {
@@ -131,17 +136,10 @@ public class MisskeyAdminTools extends NeoModule {
         }
 
         userGuilds.forEach(guild -> registerCommand(new DeleteSuspendedUsers(apiRequestManagers.get("admin")), null, guild));
-
-        var migrateFolder = new File(getDataFolder(), "migrate");
-        if (!migrateFolder.exists())
-            migrateFolder.mkdirs();
-        OldDataImporter importer = new OldDataImporter(accountsStore);
-        Arrays.stream(migrateFolder.listFiles()).forEach(importer::load);
     }
 
     @Override
     public void onDisable() {
-        reportWatcher.shutdown();
         newReportWatcher.shutdown();
         apiRequestManagers.forEach((key, manager) -> manager.shutdown());
     }

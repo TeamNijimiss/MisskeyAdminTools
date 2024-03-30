@@ -17,12 +17,13 @@
 package app.nijimiss.mat.core.function.emoji
 
 import app.nijimiss.mat.MisskeyAdminTools
-import app.nijimiss.mat.core.database.AccountsStore
-import app.nijimiss.mat.core.database.EmojiStore
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
 import app.nijimiss.mat.core.requests.misskey.endpoints.drive.files.Create
+import app.nijimiss.mat.core.service.EmojiService
+import app.nijimiss.mat.database.AccountsStore
+import app.nijimiss.mat.database.EmojiStore
 import com.fasterxml.jackson.databind.ObjectMapper
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Message.Attachment
@@ -47,7 +48,7 @@ class EmojiRequester(
 ) : CommandExecutor("emoji") {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
     private val emojiManagerConfig: EmojiManagerConfig
-    private val emojiManager: EmojiManager
+    private val emojiService: EmojiService
     private val requesterHandler: MutableList<RequesterHandler> = mutableListOf()
     private val updateWaitlist: MutableMap<UUID, EmojiRequest> = mutableMapOf()
 
@@ -71,7 +72,7 @@ class EmojiRequester(
         }
         emojiManagerConfig = ConfigLoader.loadConfig(configFile, EmojiManagerConfig::class.java)
 
-        emojiManager = EmojiManager(emojiManagerConfig, emojiStore, requestManager)
+        emojiService = EmojiService(emojiManagerConfig, emojiStore, requestManager)
 
         options.add(object : SubCommandOption("request") {
             init {
@@ -191,53 +192,8 @@ class EmojiRequester(
                 }
 
                 // check exist emoji
-                val existsEmoji = emojiManager.getEmoji(name)
+                val existsEmoji = emojiService.getEmoji(name)
                 if (existsEmoji != null) {
-                    /*when (existsEmoji) {
-                        is RegisteredEmoji -> {
-                            context.responseSender.sendMessage("既に同じ名前の絵文字が存在します。 / Emoji with the same name already exists.")
-                                .setEphemeral(true).queue()
-                            return
-                        }
-
-                        is EmojiRequest -> {
-                            context.responseSender.sendMessage("既に同じ名前の絵文字がリクエスト中です。 / Emoji with the same name is already requested.")
-                                .setEphemeral(true).queue()
-                            return
-                        }
-
-                        is ApprovedEmoji -> {
-                            if (existsEmoji.requesterId == context.invoker.idLong) {
-                                context.responseSender.sendMessage(
-                                    "あなたが作成した同じ名前の絵文字が存在します。\n絵文字の内容を更新しますか？ " +
-                                            "/ There is an emoji with the same name that you created.\nDo you want to update the contents of the emoji?"
-                                )
-                                    .setEphemeral(true).queue {
-                                        val buttons = listOf(
-                                            Button.primary("emoji_update_${existsEmoji.requestId}", "はい / Yes"),
-                                            Button.danger("emoji_cancel_${existsEmoji.requestId}", "いいえ / No")
-                                        )
-                                        it.editMessageComponents().setActionRow(buttons).queue()
-                                    }
-
-                                updateWaitlist[existsEmoji.requestId] = EmojiRequest(
-                                    existsEmoji.requestId,
-                                    existsEmoji.requesterId,
-                                    name,
-                                    existsEmoji.imageFileId,
-                                    existsEmoji.imageUrl,
-                                    existsEmoji.license,
-                                    existsEmoji.sensitive,
-                                    existsEmoji.localOnly,
-                                    existsEmoji.comment,
-                                    existsEmoji.createdAt
-                                )
-                            }
-
-                            return
-                        }
-                    }*/
-
                     context.responseSender.sendMessage("既に同じ名前の絵文字が存在します。 / Emoji with the same name already exists.")
                         .setEphemeral(true).queue()
                     return
@@ -276,9 +232,6 @@ class EmojiRequester(
                 return "絵文字をリクエストします。 / Request emoji."
             }
         })
-
-        options.add(EmojiFileChecker(requestManager))
-        options.add(EmojiRepairTool(emojiManagerConfig, requestManager))
 
         registerHandler(EmojiRequestReportSender(accountsStore, emojiStore, emojiManagerConfig.targetReportChannel))
         MisskeyAdminTools.getInstance().jda.addEventListener(
@@ -327,7 +280,7 @@ class EmojiRequester(
         requestManager.addRequest(upload, object : ApiResponseHandler {
             override fun onSuccess(response: ApiResponse?) {
                 val uploadedFile =
-                    MAPPER.readValue(response!!.body, app.nijimiss.mat.api.misskey.File::class.java)
+                    MAPPER.readValue(response!!.body, app.nijimiss.mat.entities.File::class.java)
                 if (!(uploadedFile.url == null || uploadedFile.id == null)) {
                     uploadedFileId[0] = uploadedFile.id
                     uploadedFileId[1] = uploadedFile.url

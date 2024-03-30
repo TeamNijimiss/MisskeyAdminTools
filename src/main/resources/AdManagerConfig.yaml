@@ -1,0 +1,2 @@
+targetReportChannel: 0 # Target report channel ID
+imageSaveFolderId: MISSKEY_FOLDER_ID # Folder ID to save the image

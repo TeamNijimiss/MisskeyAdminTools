@@ -16,9 +16,6 @@
 package app.nijimiss.mat.core.function.report
 
 import app.nijimiss.mat.MisskeyAdminTools
-import app.nijimiss.mat.api.misskey.FullUser
-import app.nijimiss.mat.core.database.ReportsStore
-import app.nijimiss.mat.core.database.UserStore
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
@@ -26,6 +23,9 @@ import app.nijimiss.mat.core.requests.misskey.endpoints.admin.ResolveAbuseUserRe
 import app.nijimiss.mat.core.requests.misskey.endpoints.notes.Create
 import app.nijimiss.mat.core.requests.misskey.endpoints.notes.Create.Visibility
 import app.nijimiss.mat.core.requests.misskey.endpoints.users.Show
+import app.nijimiss.mat.database.ReportsStore
+import app.nijimiss.mat.database.UserStore
+import app.nijimiss.mat.entities.FullUser
 import com.fasterxml.jackson.databind.ObjectMapper
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.entities.Message
@@ -219,8 +219,8 @@ class WarningSender(
                                             ).queue()
 
                                             // Update User Warned Count
-                                            val warningCount = userStore.getWarningCount(user.id!!) + 1
-                                            userStore.updateWarningCount(user.id, warningCount)
+                                            val warningCount = userStore.getWarningCount(user.username!!) + 1
+                                            userStore.updateWarningCount(user.username, warningCount)
                                             if (continuousWarningLimit < warningCount) {
                                                 event.hook.sendMessage(
                                                     """

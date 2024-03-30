@@ -17,12 +17,12 @@
 package app.nijimiss.mat.core.function.link
 
 import app.nijimiss.mat.MisskeyAdminTools
-import app.nijimiss.mat.api.misskey.FullUser
-import app.nijimiss.mat.core.database.AccountsStore
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
 import app.nijimiss.mat.core.requests.misskey.endpoints.users.Show
+import app.nijimiss.mat.database.AccountsStore
+import app.nijimiss.mat.entities.FullUser
 import com.fasterxml.jackson.databind.ObjectMapper
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import page.nafuchoco.neobot.api.command.CommandContext

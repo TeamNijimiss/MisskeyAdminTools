@@ -17,7 +17,6 @@
 package app.nijimiss.mat.core.function.tools
 
 import app.nijimiss.mat.MisskeyAdminTools
-import app.nijimiss.mat.api.misskey.FullUser
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
@@ -25,6 +24,7 @@ import app.nijimiss.mat.core.requests.misskey.elements.Origin
 import app.nijimiss.mat.core.requests.misskey.elements.State
 import app.nijimiss.mat.core.requests.misskey.endpoints.admin.DeleteAccount
 import app.nijimiss.mat.core.requests.misskey.endpoints.admin.ShowUsers
+import app.nijimiss.mat.entities.FullUser
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import net.dv8tion.jda.api.entities.Role

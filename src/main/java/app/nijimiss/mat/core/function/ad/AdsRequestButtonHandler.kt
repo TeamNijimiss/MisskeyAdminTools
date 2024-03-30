@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package app.nijimiss.mat.core.function.emoji
+package app.nijimiss.mat.core.function.ad
 
 import app.nijimiss.mat.MisskeyAdminTools
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
-import app.nijimiss.mat.core.requests.misskey.endpoints.admin.emoji.Add
+import app.nijimiss.mat.core.requests.misskey.endpoints.admin.ad.Create
 import app.nijimiss.mat.database.AccountsStore
-import app.nijimiss.mat.database.EmojiStore
+import app.nijimiss.mat.database.AdStore
 import app.nijimiss.mat.entities.Emoji
 import com.fasterxml.jackson.databind.ObjectMapper
 import net.dv8tion.jda.api.EmbedBuilder
@@ -31,9 +31,9 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter
 import page.nafuchoco.neobot.api.module.NeoModuleLogger
 import java.awt.Color
 
-class EmojiRequestButtonHandler(
+class AdsRequestButtonHandler(
     private val accountsStore: AccountsStore,
-    private val emojiStore: EmojiStore,
+    private val adStore: AdStore,
     private val requestManager: ApiRequestManager,
 ) : ListenerAdapter() {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
@@ -42,7 +42,7 @@ class EmojiRequestButtonHandler(
         val args = event.componentId.split("_".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
         // warning_reason_1234567890: args[0] = "warning", args[1] = action, args[2] = processId
 
-        if (args[0] != "emoji") // If the component is not a warning component, return
+        if (args[0] != "ads") // If the component is not a warning component, return
             return
 
         val processId = args[2] // report embed message id
@@ -51,7 +51,7 @@ class EmojiRequestButtonHandler(
 
         when (action) {
             "accept" -> {
-                val request = emojiStore.getEmojiRequest(processId)
+                val request = adStore.getAdRequest(processId)
                 if (request == null) {
                     logger.warn("The specified request does not exist.")
                     return
@@ -60,24 +60,20 @@ class EmojiRequestButtonHandler(
                 event.deferEdit().queue()
 
                 val requesterId = accountsStore.getMisskeyId(request.requesterId)
+                val startsAt = System.currentTimeMillis()
+                val endsAt = request.endAt ?: (System.currentTimeMillis() + 86400000)
 
-                val addEmoji = Add(
-                    request.emojiName,
-                    request.aliases,
-                    request.imageFileId,
-                    null,
-                    request.license,
-                    request.sensitive,
-                    request.localOnly,
-                    requesterId,
-                    null,
-                    arrayOf<String>()
+                val createAd = Create(
+                    request.linkUrl,
+                    request.imageUrl,
+                    startsAt,
+                    endsAt
                 )
-                requestManager.addRequest(addEmoji, object : ApiResponseHandler {
+                requestManager.addRequest(createAd, object : ApiResponseHandler {
                     override fun onSuccess(response: ApiResponse?) {
                         val embedBuilder = EmbedBuilder(event.message.embeds[0])
                             .setColor(Color.GREEN)
-                            .setDescription("Emoji has been added.")
+                            .setDescription("The ad has been approved.")
                         event.message.editMessageEmbeds(embedBuilder.build()).queue()
                         event.message.editMessageComponents().queue()
 
@@ -85,13 +81,13 @@ class EmojiRequestButtonHandler(
                             response!!.body, Emoji::class.java
                         )
 
-                        emojiStore.approveEmojiRequest(processId, event.member!!.idLong, emoji.id!!)
+                        adStore.approveAd(processId, event.member!!.idLong, startsAt, endsAt)
                     }
 
                     override fun onFailure(response: ApiResponse?) {
                         event.hook.sendMessage(
                             """
-                            An error occurred while adding the emoji.
+                            An error occurred while creating the ad.
                             ```
                             ${response?.body}
                             ```
@@ -106,10 +102,10 @@ class EmojiRequestButtonHandler(
 
                 val embedBuilder = EmbedBuilder(event.message.embeds[0])
                     .setColor(Color.GRAY)
-                    .setDescription("Emoji has been denied.")
+                    .setDescription("The ad has been denied.")
                 event.message.editMessageEmbeds(embedBuilder.build()).queue()
                 event.message.editMessageComponents().queue()
-                emojiStore.rejectEmojiRequest(processId)
+                adStore.deleteAd(processId)
             }
         }
     }

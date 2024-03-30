@@ -9,6 +9,7 @@ function:
   accountLinker: true
   roleSynchronizer: true # Requires accountLinker to be enabled
   emojiManager: true # Requires accountLinker to be enabled
+  adManager: true
   inviteManager: true
 
 debug: false

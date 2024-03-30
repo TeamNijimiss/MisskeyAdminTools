@@ -17,11 +17,6 @@
 package app.nijimiss.mat.core.function.report
 
 import app.nijimiss.mat.MisskeyAdminTools
-import app.nijimiss.mat.api.misskey.FullUser
-import app.nijimiss.mat.api.misskey.admin.Report
-import app.nijimiss.mat.core.database.MATSystemDataStore
-import app.nijimiss.mat.core.database.ReportsStore
-import app.nijimiss.mat.core.database.UserStore
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
@@ -30,6 +25,11 @@ import app.nijimiss.mat.core.requests.misskey.endpoints.admin.ResolveAbuseUserRe
 import app.nijimiss.mat.core.requests.misskey.endpoints.admin.SuspendUser
 import app.nijimiss.mat.core.requests.misskey.endpoints.admin.roles.Assign
 import app.nijimiss.mat.core.requests.misskey.endpoints.users.Show
+import app.nijimiss.mat.database.MATSystemDataStore
+import app.nijimiss.mat.database.ReportsStore
+import app.nijimiss.mat.database.UserStore
+import app.nijimiss.mat.entities.FullUser
+import app.nijimiss.mat.entities.admin.Report
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper

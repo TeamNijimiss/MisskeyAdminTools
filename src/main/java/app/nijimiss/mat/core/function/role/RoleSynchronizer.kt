@@ -17,14 +17,13 @@
 package app.nijimiss.mat.core.function.role
 
 import app.nijimiss.mat.MisskeyAdminTools
-import app.nijimiss.mat.api.misskey.FullUser
-import app.nijimiss.mat.core.database.AccountsStore
 import app.nijimiss.mat.core.function.link.LinkerHandler
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
-import app.nijimiss.mat.core.requests.misskey.endpoints.admin.roles.Unassign
 import app.nijimiss.mat.core.requests.misskey.endpoints.users.Show
+import app.nijimiss.mat.database.AccountsStore
+import app.nijimiss.mat.entities.FullUser
 import com.fasterxml.jackson.databind.ObjectMapper
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Guild
@@ -136,7 +135,13 @@ class RoleSynchronizer(
             }
 
             override fun onFailure(response: ApiResponse?) {
-                logger.error("Failed to get user information.", response!!.body)
+                // If the user is not found, remove the account.
+                if (response!!.statusCode == 404) {
+                    accountsStore.removeAccount(discordMember.idLong)
+                    logger.info("Removed the account of the user who left the server.: {}", discordMember.idLong)
+                } else {
+                    logger.error("Failed to get user information.", response.body)
+                }
             }
         })
     }
@@ -147,36 +152,6 @@ class RoleSynchronizer(
                 targetGuild.removeRoleFromMember(discordMember, targetGuild.getRoleById(role.discordRole)!!).queue()
             }
         }
-    }
-
-    private fun unassignAllRoles(misskeyId: String) {
-        val show = Show(misskeyId, Show.SearchType.ID)
-        requestManager.addRequest(show, object : ApiResponseHandler {
-            override fun onSuccess(response: ApiResponse?) {
-                val user = MAPPER.readValue(response!!.body, FullUser::class.java)
-                val misskeyRoles = user.roles?.map { it.id }
-
-                // role synchronization
-                synchronizerConfig.roleAssign.forEach { role ->
-                    if (misskeyRoles?.contains(role.misskeyRole) == true) {
-                        val unassign = Unassign(misskeyId, role.misskeyRole!!)
-                        requestManager.addRequest(unassign, object : ApiResponseHandler {
-                            override fun onSuccess(response: ApiResponse?) {
-                                logger.debug("Unassigned role from user $misskeyId.")
-                            }
-
-                            override fun onFailure(response: ApiResponse?) {
-                                logger.error("Failed to unassigned role from user.", response!!.body)
-                            }
-                        })
-                    }
-                }
-            }
-
-            override fun onFailure(response: ApiResponse?) {
-                logger.error("Failed to get user information.", response!!.body)
-            }
-        })
     }
 
     companion object {
