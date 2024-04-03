@@ -263,17 +263,21 @@ class NewReportWatcher(
             requestManager.addRequest(userShow, object : ApiResponseHandler {
                 override fun onSuccess(response: ApiResponse?) {
                     val user = MAPPER.readValue(response!!.body, FullUser::class.java)
-
-                    if (user == null) {
-                        event.hook.sendMessage("ユーザーが見つかりませんでした。 / User not found.").queue()
-                        return
-                    }
-
                     targetUser = user.id!!
                 }
 
                 override fun onFailure(response: ApiResponse?) {
-                    // TODO: エラー処理
+                    if (response!!.statusCode == 404) {
+                        event.hook.sendMessage("ユーザーが見つかりませんでした。 / User not found.").queue()
+                        targetUser = ""
+                    } else {
+                        MisskeyAdminTools.getInstance().moduleLogger.error(
+                            """
+                            An error occurred while getting the user information.
+                            Response Code: {}, Body: {}
+                            """.trimIndent(), response.statusCode, response.body
+                        )
+                    }
                 }
             }).join()
 
@@ -282,6 +286,21 @@ class NewReportWatcher(
                     .filter(String::isNotBlank).toList()
 
             ReportContext(processId, event.message.idLong, targetUser, targetNotes)
+        }
+
+        if (context.reportTargetUserId.isBlank() && action == "noaction") {
+            closeInvalidReport(context, event)
+            return
+        } else if (context.reportTargetUserId.isBlank()) {
+            event.hook.sendMessage(
+                """
+                通報されたユーザーが見つかりませんでした。 / The reported user was not found.
+                """.trimIndent()
+            ).setEphemeral(true).queue()
+            event.message.delete().queue {
+                reportStore.removeReport(event.message.idLong)
+            }
+            return
         }
 
         when (action) {
@@ -427,19 +446,7 @@ class NewReportWatcher(
 
             "noaction" -> {
                 // Resolve Report
-                Thread {
-                    if (closeReport(context, event)) {
-                        event.hook.sendMessage(
-                            """
-                        無効通報として登録しました。
-                        Registered as an invalid report.
-                        """.trimIndent()
-                        ).setEphemeral(true).queue()
-                        event.message.delete().queue {
-                            reportStore.removeReport(event.message.idLong)
-                        }
-                    }
-                }.start()
+                closeInvalidReport(context, event)
             }
 
             "main" -> {
@@ -492,39 +499,59 @@ class NewReportWatcher(
             }
 
             override fun onFailure(response: ApiResponse?) {
-                if (response!!.statusCode == 500) {
-                    val userShow = Show(context.reportTargetUserId, Show.SearchType.ID)
-                    requestManager.addRequest(userShow, object : ApiResponseHandler {
-                        override fun onSuccess(response: ApiResponse?) {
-                            event.hook.sendMessage(
-                                """
-                                通報のクローズに失敗しました。手動にて処理してください。
-                                Report close failed. Please process it manually.
-                                """.trimIndent()
-                            ).setEphemeral(true).queue()
-                        }
-
-                        override fun onFailure(response: ApiResponse?) {
-                            if (response!!.statusCode == 404) {
-                                event.hook.sendMessage("該当ユーザーは既に削除されています。 / The user has already been deleted.")
-                                    .setEphemeral(true).queue()
-                                event.message.delete().queue()
-                                reportStore.removeReport(context.messageId)
-                            }
-                        }
-                    }).join()
-                } else {
+                if (response!!.statusCode != 500) {
                     MisskeyAdminTools.getInstance().moduleLogger.error(
                         """
-                    An error occurred while closing the report.
-                    Response Code: {}, Body: {}
-                    """.trimIndent(), response.statusCode, response.body
+                        An error occurred while closing the report.
+                        Response Code: {}, Body: {}
+                        """.trimIndent(), response.statusCode, response.body
                     )
                 }
             }
         }).join()
 
+        if (!result) {
+            val userShow = Show(context.reportTargetUserId, Show.SearchType.ID)
+            requestManager.addRequest(userShow, object : ApiResponseHandler {
+                override fun onSuccess(response: ApiResponse?) {
+                    event.hook.sendMessage(
+                        """
+                    通報のクローズに失敗しました。手動にて処理してください。
+                    Report close failed. Please process it manually.
+                    """.trimIndent()
+                    ).setEphemeral(true).queue()
+                }
+
+                override fun onFailure(response: ApiResponse?) {
+                    if (response!!.statusCode == 404) {
+                        event.hook.sendMessage("該当ユーザーは既に削除されています。 / The user has already been deleted.")
+                            .setEphemeral(true).queue()
+                        event.message.delete().queue()
+                        reportStore.removeReport(context.messageId)
+                    }
+
+                    result = true
+                }
+            }).join()
+        }
+
         return result
+    }
+
+    private fun closeInvalidReport(context: ReportContext, event: ButtonInteractionEvent) {
+        Thread {
+            if (closeReport(context, event)) {
+                event.hook.sendMessage(
+                    """
+                    無効通報として登録しました。
+                    Registered as an invalid report.
+                    """.trimIndent()
+                ).setEphemeral(true).queue()
+                event.message.delete().queue {
+                    reportStore.removeReport(event.message.idLong)
+                }
+            }
+        }.start()
     }
 
     fun convertCategoryToHumanReadable(category: String?): String {
