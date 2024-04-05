@@ -47,6 +47,7 @@ class AutoClosure(
         when (action) {
             "close" -> {
                 event.message.editMessageComponents().queue()
+                event.deferEdit().queue()
 
                 reportsStore.getReport(processId.toLong())?.let { report ->
                     if (report.reportTargetNoteIds.size > 1) {
