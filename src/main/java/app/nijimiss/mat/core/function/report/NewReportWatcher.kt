@@ -134,7 +134,7 @@ class NewReportWatcher(
                     for (report in reports) {
                         val reportNotes =
                             if (report.comment != null) NOTE_URL_PATTERN.matcher(report.comment) else null
-                        val noteIds = reportNotes!!.results().map { it.group(2) }.toList()
+                        val noteIds = reportNotes!!.results().map { it.group(2) }.distinct().toList()
 
                         val embedBuilder = EmbedBuilder()
                         embedBuilder.setTitle("通報 / Report")
@@ -283,7 +283,7 @@ class NewReportWatcher(
 
             val targetNotes =
                 NOTE_URL_PATTERN.matcher(event.message.embeds[0].description).results().map { it.group(2) }
-                    .filter(String::isNotBlank).toList()
+                    .filter(String::isNotBlank).distinct().toList()
 
             ReportContext(processId, event.message.idLong, targetUser, targetNotes)
         }
