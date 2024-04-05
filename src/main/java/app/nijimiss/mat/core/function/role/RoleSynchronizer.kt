@@ -23,6 +23,7 @@ import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
 import app.nijimiss.mat.core.requests.misskey.endpoints.users.Show
 import app.nijimiss.mat.database.AccountsStore
+import app.nijimiss.mat.database.MATSystemDataStore
 import app.nijimiss.mat.entities.FullUser
 import com.fasterxml.jackson.databind.ObjectMapper
 import net.dv8tion.jda.api.JDA
@@ -41,6 +42,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class RoleSynchronizer(
+    private val systemStore: MATSystemDataStore,
     private val accountsStore: AccountsStore,
     private val requestManager: ApiRequestManager,
 ) : ListenerAdapter(), LinkerHandler {
@@ -90,8 +92,17 @@ class RoleSynchronizer(
             }
         })
 
+        // Calculate the time until the next synchronization.
+        val lastSync = systemStore.getOption("lastSync")?.toLong() ?: 0
+        val nextSync = lastSync + TimeUnit.HOURS.toMillis(2) - System.currentTimeMillis()
+
         val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
-        scheduledExecutor.scheduleAtFixedRate({ reSync() }, 0, 2, TimeUnit.HOURS)
+        scheduledExecutor.scheduleAtFixedRate(
+            { reSync() },
+            if (nextSync > 0) nextSync else 0,
+            7200000,
+            TimeUnit.MILLISECONDS
+        )
     }
 
     private fun reSync() {
@@ -105,6 +116,8 @@ class RoleSynchronizer(
                 synchronizeRole(discordMember, misskeyId)
             }
         }
+
+        systemStore.setOption("lastSync", System.currentTimeMillis().toString())
     }
 
     override fun onLink(discordId: Long, misskeyId: String) {

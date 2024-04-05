@@ -115,7 +115,7 @@ public class MisskeyAdminTools extends NeoModule {
             registerCommand(accountLinker);
 
             if (config.getFunction().getRoleSynchronizer()) {
-                roleSynchronizer = new RoleSynchronizer(accountsStore, apiRequestManagers.get("sync"));
+                roleSynchronizer = new RoleSynchronizer(systemDataStore, accountsStore, apiRequestManagers.get("sync"));
                 accountLinker.registerHandler(roleSynchronizer);
             }
 
