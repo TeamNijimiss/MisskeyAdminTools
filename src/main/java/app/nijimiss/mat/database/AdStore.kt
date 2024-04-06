@@ -18,9 +18,11 @@ package app.nijimiss.mat.database
 
 import app.nijimiss.mat.core.function.ad.AdRequest
 import page.nafuchoco.neobot.api.DatabaseConnector
+import java.sql.SQLException
 
 class AdStore(connector: DatabaseConnector) : DatabaseTable(connector, "ads") {
 
+    @Throws(SQLException::class)
     fun createTable() {
         super.createTable(
             "request_id VARCHAR(36) NOT NULL PRIMARY KEY, " +
@@ -37,6 +39,7 @@ class AdStore(connector: DatabaseConnector) : DatabaseTable(connector, "ads") {
         )
     }
 
+    @Throws(SQLException::class)
     fun getAdRequest(requestId: String): AdRequest? {
         connector.connection.use { connection ->
             connection.prepareStatement("SELECT * FROM $tableName WHERE request_id = ? AND approved = FALSE")
@@ -62,6 +65,7 @@ class AdStore(connector: DatabaseConnector) : DatabaseTable(connector, "ads") {
     }
 
     // approved = TRUE かつ end_at が現在時刻より後の広告 もしくは approved = FALSE の広告が存在するか確認
+    @Throws(SQLException::class)
     fun checkActiveAd(requesterId: Long): Boolean {
         connector.connection.use { connection ->
             connection.prepareStatement(
@@ -75,6 +79,7 @@ class AdStore(connector: DatabaseConnector) : DatabaseTable(connector, "ads") {
         }
     }
 
+    @Throws(SQLException::class)
     fun insertAd(
         requestId: String,
         requesterId: Long,
@@ -102,6 +107,7 @@ class AdStore(connector: DatabaseConnector) : DatabaseTable(connector, "ads") {
         }
     }
 
+    @Throws(SQLException::class)
     fun approveAd(requestId: String, approverId: Long, startAt: Long, endAt: Long) {
         connector.connection.use { connection ->
             connection.prepareStatement(
@@ -116,6 +122,7 @@ class AdStore(connector: DatabaseConnector) : DatabaseTable(connector, "ads") {
         }
     }
 
+    @Throws(SQLException::class)
     fun deleteAd(requestId: String) {
         connector.connection.use { connection ->
             connection.prepareStatement("DELETE FROM $tableName WHERE request_id = ?").use { statement ->
