@@ -375,6 +375,7 @@ class NewReportWatcher(
                         // Edit Report Embed
                         addReportStatus(event.message, "ミュート済み / Muted", event.user.name)
                         reportStore.removeReport(event.message.idLong)
+                        event.message.editMessageComponents().queue()
 
                         // Update User Status
                         userStore.updateAccountStatus(context.reportTargetUserId, "muted")
