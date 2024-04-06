@@ -22,7 +22,6 @@ import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
 import app.nijimiss.mat.core.requests.misskey.endpoints.drive.files.Create
-import app.nijimiss.mat.core.service.EmojiService
 import app.nijimiss.mat.database.AccountsStore
 import app.nijimiss.mat.database.EmojiStore
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -49,7 +48,6 @@ class EmojiRequester(
 ) : CommandExecutor("emoji") {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
     private val emojiManagerConfig: EmojiManagerConfig
-    private val emojiService: EmojiService
     private val requesterHandler: MutableList<RequestHandler> = mutableListOf()
     private val updateWaitlist: MutableMap<UUID, EmojiRequest> = mutableMapOf()
 
@@ -72,8 +70,6 @@ class EmojiRequester(
             }
         }
         emojiManagerConfig = ConfigLoader.loadConfig(configFile, EmojiManagerConfig::class.java)
-
-        emojiService = EmojiService(emojiManagerConfig, emojiStore, requestManager)
 
         options.add(object : SubCommandOption("request") {
             init {
@@ -193,13 +189,11 @@ class EmojiRequester(
                 }
 
                 // check exist emoji
-                val existsEmoji = emojiService.getEmoji(name)
-                if (existsEmoji != null) {
+                if (emojiStore.existsEmoji(name)) {
                     context.responseSender.sendMessage("既に同じ名前の絵文字が存在します。 / Emoji with the same name already exists.")
                         .setEphemeral(true).queue()
                     return
                 }
-
 
                 // Upload emoji image file to Misskey
                 uploadImage(image).let { uploadedFile ->
