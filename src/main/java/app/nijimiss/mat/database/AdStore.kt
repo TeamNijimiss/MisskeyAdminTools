@@ -19,6 +19,7 @@ package app.nijimiss.mat.database
 import app.nijimiss.mat.core.function.ad.AdRequest
 import page.nafuchoco.neobot.api.DatabaseConnector
 import java.sql.SQLException
+import java.util.*
 
 class AdStore(connector: DatabaseConnector) : DatabaseTable(connector, "ads") {
 
@@ -40,15 +41,15 @@ class AdStore(connector: DatabaseConnector) : DatabaseTable(connector, "ads") {
     }
 
     @Throws(SQLException::class)
-    fun getAdRequest(requestId: String): AdRequest? {
+    fun getAdRequest(requestId: UUID): AdRequest? {
         connector.connection.use { connection ->
             connection.prepareStatement("SELECT * FROM $tableName WHERE request_id = ? AND approved = FALSE")
                 .use { statement ->
-                    statement.setString(1, requestId)
+                    statement.setString(1, requestId.toString())
                     statement.executeQuery().use { result ->
                         if (result.next()) {
                             return AdRequest(
-                                result.getString("request_id"),
+                                UUID.fromString(result.getString("request_id")),
                                 result.getLong("requester_id"),
                                 result.getString("image_file_id"),
                                 result.getString("image_url"),
@@ -81,7 +82,7 @@ class AdStore(connector: DatabaseConnector) : DatabaseTable(connector, "ads") {
 
     @Throws(SQLException::class)
     fun insertAd(
-        requestId: String,
+        requestId: UUID,
         requesterId: Long,
         imageFileId: String,
         imageUrl: String,
@@ -93,7 +94,7 @@ class AdStore(connector: DatabaseConnector) : DatabaseTable(connector, "ads") {
             connection.prepareStatement(
                 "INSERT INTO $tableName (request_id, requester_id, image_file_id, image_url, link_url, comment) VALUES (?, ?, ?, ?, ?, ?)"
             ).use { statement ->
-                statement.setString(1, requestId)
+                statement.setString(1, requestId.toString())
                 statement.setLong(2, requesterId)
                 statement.setString(3, imageFileId)
                 statement.setString(4, imageUrl)
@@ -108,7 +109,7 @@ class AdStore(connector: DatabaseConnector) : DatabaseTable(connector, "ads") {
     }
 
     @Throws(SQLException::class)
-    fun approveAd(requestId: String, approverId: Long, startAt: Long, endAt: Long) {
+    fun approveAd(requestId: UUID, approverId: Long, startAt: Long, endAt: Long) {
         connector.connection.use { connection ->
             connection.prepareStatement(
                 "UPDATE $tableName SET approved = 1, approver_id = ?, start_at = ?, end_at = ? WHERE request_id = ?"
@@ -116,17 +117,17 @@ class AdStore(connector: DatabaseConnector) : DatabaseTable(connector, "ads") {
                 statement.setLong(1, approverId)
                 statement.setTimestamp(2, java.sql.Timestamp(startAt))
                 statement.setTimestamp(3, java.sql.Timestamp(endAt))
-                statement.setString(4, requestId)
+                statement.setString(4, requestId.toString())
                 statement.executeUpdate()
             }
         }
     }
 
     @Throws(SQLException::class)
-    fun deleteAd(requestId: String) {
+    fun deleteAd(requestId: UUID) {
         connector.connection.use { connection ->
             connection.prepareStatement("DELETE FROM $tableName WHERE request_id = ?").use { statement ->
-                statement.setString(1, requestId)
+                statement.setString(1, requestId.toString())
                 statement.executeUpdate()
             }
         }

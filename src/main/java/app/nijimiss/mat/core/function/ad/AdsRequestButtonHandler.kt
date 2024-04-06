@@ -17,25 +17,26 @@
 package app.nijimiss.mat.core.function.ad
 
 import app.nijimiss.mat.MisskeyAdminTools
+import app.nijimiss.mat.core.entities.RequestBase
+import app.nijimiss.mat.core.function.common.RequestButtonHandler
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
 import app.nijimiss.mat.core.requests.misskey.endpoints.admin.ad.Create
 import app.nijimiss.mat.database.AccountsStore
 import app.nijimiss.mat.database.AdStore
-import app.nijimiss.mat.entities.Emoji
 import com.fasterxml.jackson.databind.ObjectMapper
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
-import net.dv8tion.jda.api.hooks.ListenerAdapter
 import page.nafuchoco.neobot.api.module.NeoModuleLogger
 import java.awt.Color
+import java.util.*
 
 class AdsRequestButtonHandler(
     private val accountsStore: AccountsStore,
     private val adStore: AdStore,
     private val requestManager: ApiRequestManager,
-) : ListenerAdapter() {
+) : RequestButtonHandler(requestManager) {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
@@ -49,65 +50,65 @@ class AdsRequestButtonHandler(
         val action = args[1]
         val extendInfo = if (args.size > 3) args.copyOfRange(3, args.size) else null
 
+        val context = adStore.getAdRequest(UUID.fromString(processId))
+        if (context == null) {
+            logger.warn("The specified request does not exist.")
+            return
+        }
+
         when (action) {
             "accept" -> {
-                val request = adStore.getAdRequest(processId)
-                if (request == null) {
-                    logger.warn("The specified request does not exist.")
-                    return
-                }
+                acceptRequest(event, context)
+            }
 
-                event.deferEdit().queue()
+            "deny" -> {
+                rejectRequest(event, context)
+            }
+        }
+    }
 
-                val requesterId = accountsStore.getMisskeyId(request.requesterId)
-                val startsAt = System.currentTimeMillis()
-                val endsAt = request.endAt ?: (System.currentTimeMillis() + 86400000)
+    override fun <T : RequestBase> acceptRequest(event: ButtonInteractionEvent, context: T) {
+        if (context !is AdRequest) return
 
-                val createAd = Create(
-                    request.linkUrl,
-                    request.imageUrl,
-                    startsAt,
-                    endsAt
-                )
-                requestManager.addRequest(createAd, object : ApiResponseHandler {
-                    override fun onSuccess(response: ApiResponse?) {
-                        val embedBuilder = EmbedBuilder(event.message.embeds[0])
-                            .setColor(Color.GREEN)
-                            .setDescription("The ad has been approved.")
-                        event.message.editMessageEmbeds(embedBuilder.build()).queue()
-                        event.message.editMessageComponents().queue()
+        event.deferEdit().queue()
 
-                        val emoji = MAPPER.readValue(
-                            response!!.body, Emoji::class.java
-                        )
+        val startsAt = System.currentTimeMillis()
+        val endsAt = context.endAt ?: (System.currentTimeMillis() + 86400000)
 
-                        adStore.approveAd(processId, event.member!!.idLong, startsAt, endsAt)
-                    }
+        val createAd = Create(
+            context.linkUrl,
+            context.imageUrl,
+            startsAt,
+            endsAt
+        )
+        requestManager.addRequest(createAd, object : ApiResponseHandler {
+            override fun onSuccess(response: ApiResponse?) {
+                val embedBuilder = EmbedBuilder(event.message.embeds[0])
+                    .setColor(Color.GREEN)
+                    .setDescription("The ad has been approved.")
+                event.message.editMessageEmbeds(embedBuilder.build()).queue()
+                event.message.editMessageComponents().queue()
 
-                    override fun onFailure(response: ApiResponse?) {
-                        event.hook.sendMessage(
-                            """
+                adStore.approveAd(context.requestId, event.member!!.idLong, startsAt, endsAt)
+            }
+
+            override fun onFailure(response: ApiResponse?) {
+                event.hook.sendMessage(
+                    """
                             An error occurred while creating the ad.
                             ```
                             ${response?.body}
                             ```
                         """.trimIndent()
-                        ).queue()
-                    }
-                })
+                ).queue()
             }
+        })
+    }
 
-            "deny" -> {
-                event.deferEdit().queue()
+    override fun <T : RequestBase> rejectRequest(event: ButtonInteractionEvent, context: T) {
+        super.rejectRequest(event, context)
 
-                val embedBuilder = EmbedBuilder(event.message.embeds[0])
-                    .setColor(Color.GRAY)
-                    .setDescription("The ad has been denied.")
-                event.message.editMessageEmbeds(embedBuilder.build()).queue()
-                event.message.editMessageComponents().queue()
-                adStore.deleteAd(processId)
-            }
-        }
+        adStore.deleteAd(context.requestId)
     }
 
     companion object {

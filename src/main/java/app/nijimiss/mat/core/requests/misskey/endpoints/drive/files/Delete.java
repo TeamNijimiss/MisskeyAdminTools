@@ -14,18 +14,25 @@
  * limitations under the License.
  */
 
-package app.nijimiss.mat.core.function.ad
+package app.nijimiss.mat.core.requests.misskey.endpoints.drive.files;
 
-import app.nijimiss.mat.core.entities.RequestBase
-import java.util.*
+import app.nijimiss.mat.core.requests.misskey.RequireCredentialRequest;
+import org.jetbrains.annotations.NotNull;
 
-data class AdRequest(
-    override val requestId: UUID,
-    override val requesterId: Long,
-    override val imageFileId: String,
-    override val imageUrl: String,
-    val linkUrl: String,
-    override val comment: String,
-    override val createAt: Long,
-    val endAt: Long?
-) : RequestBase
+public class Delete extends RequireCredentialRequest {
+
+    public Delete(String fileId) {
+        add("fileId", fileId);
+    }
+
+    @NotNull
+    @Override
+    public String getEndpoint() {
+        return "api/drive/files/delete";
+    }
+
+    @Override
+    public int getSuccessCode() {
+        return 204;
+    }
+}

@@ -17,6 +17,7 @@
 package app.nijimiss.mat.core.function.ad
 
 import app.nijimiss.mat.MisskeyAdminTools
+import app.nijimiss.mat.core.function.common.RequestHandler
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
@@ -47,7 +48,7 @@ class AdRequester(
 ) : CommandExecutor("ads") {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
     private val adManagerConfig: AdManagerConfig
-    private val requesterHandler: MutableList<AdsRequesterHandler> = mutableListOf()
+    private val requesterHandler: MutableList<RequestHandler> = mutableListOf()
 
     init {
         val configFile = File(MisskeyAdminTools.getInstance().dataFolder, "AdManagerConfig.yaml")
@@ -176,16 +177,19 @@ class AdRequester(
                 val uploadedFile = uploadImage(image)
 
                 // リクエストを送信
-                val requestId = UUID.randomUUID().toString()
+                val requestId = UUID.randomUUID()
                 requesterHandler.forEach {
-                    it.requestAds(
-                        requestId,
-                        context.invoker.idLong,
-                        uploadedFile[0]!!,
-                        uploadedFile[1]!!,
-                        link,
-                        description,
-                        endAtDate?.time
+                    it.requestCreate(
+                        AdRequest(
+                            requestId,
+                            context.invoker.idLong,
+                            uploadedFile[0]!!,
+                            uploadedFile[1]!!,
+                            link,
+                            description,
+                            System.currentTimeMillis(),
+                            endAtDate?.time
+                        )
                     )
                 }
             }

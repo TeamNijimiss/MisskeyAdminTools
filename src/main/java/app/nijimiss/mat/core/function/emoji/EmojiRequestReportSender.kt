@@ -17,6 +17,8 @@
 package app.nijimiss.mat.core.function.emoji
 
 import app.nijimiss.mat.MisskeyAdminTools
+import app.nijimiss.mat.core.entities.RequestBase
+import app.nijimiss.mat.core.function.common.RequestHandler
 import app.nijimiss.mat.database.AccountsStore
 import app.nijimiss.mat.database.EmojiStore
 import net.dv8tion.jda.api.EmbedBuilder
@@ -32,76 +34,56 @@ class EmojiRequestReportSender(
     private val accountsStore: AccountsStore,
     private val emojiStore: EmojiStore,
     targetReportChannel: Long
-) : ListenerAdapter(), RequesterHandler {
+) : ListenerAdapter(), RequestHandler {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
     private val discordApi: JDA = MisskeyAdminTools.getInstance().jda
     private val targetChannel: TextChannel = discordApi.getTextChannelById(targetReportChannel)
         ?: throw IllegalStateException("The specified channel does not exist.")
 
-    override fun requestEmoji(
-        requestId: UUID,
-        requesterId: Long,
-        emojiName: String,
-        imageFileId: String,
-        imageUrl: String,
-        aliases: Array<String>,
-        license: String?,
-        sensitive: Boolean,
-        comment: String?
-    ) {
+    override fun <T : RequestBase> requestCreate(context: T) {
+        if (context !is EmojiRequest) {
+            logger.warn("The specified request is not an emoji request.")
+            return
+        }
+
         emojiStore.addEmojiRequest(
             EmojiRequest(
-                requestId,
-                requesterId,
-                emojiName,
-                imageFileId,
-                imageUrl,
-                aliases,
-                license,
-                sensitive,
+                context.requestId,
+                context.requesterId,
+                context.emojiName,
+                context.imageFileId,
+                context.imageUrl,
+                context.aliases,
+                context.license,
+                context.sensitive,
                 false,
-                comment,
+                context.comment,
                 System.currentTimeMillis()
             )
         )
 
         val requestInfo: EmbedBuilder = EmbedBuilder()
             .setTitle("絵文字の追加リクエスト / Emoji add request")
-            .addField("リクエストID / Request ID", requestId.toString(), false)
+            .addField("リクエストID / Request ID", context.requestId.toString(), false)
             .addField(
                 "リクエストユーザー / Request User",
-                "$requesterId (${accountsStore.getMisskeyId(requesterId)})", false
+                "$context.requesterId (${accountsStore.getMisskeyId(context.requesterId)})", false
             )
-            .addField("絵文字名 / Emoji name", emojiName, false)
-            .addField("エイリアス / Aliases", aliases.joinToString(", "), false)
-            .addField("ライセンス / License", license ?: "None", false)
-            .addField("NSFW", sensitive.toString(), false)
-            .addField("コメント / Comment", comment ?: "None", false)
+            .addField("絵文字名 / Emoji name", context.emojiName, false)
+            .addField("エイリアス / Aliases", context.aliases.joinToString(", "), false)
+            .addField("ライセンス / License", context.license ?: "None", false)
+            .addField("NSFW", context.sensitive.toString(), false)
+            .addField("コメント / Comment", context.comment ?: "None", false)
             .setFooter("Request date")
             .setTimestamp(Date().toInstant())
-            .setImage(imageUrl)
+            .setImage(context.imageUrl)
             .setColor(Color.RED)
         targetChannel.sendMessageEmbeds(requestInfo.build()).queue {
             val buttons = listOf(
-                Button.primary("emoji_accept_$requestId", "承認 / Accept"),
-                Button.danger("emoji_deny_$requestId", "拒否 / Deny")
+                Button.primary("emoji_accept_$context.requestId", "承認 / Accept"),
+                Button.danger("emoji_deny_$context.requestId", "拒否 / Deny")
             )
             it.editMessageComponents().setActionRow(buttons).queue()
         }
-    }
-
-    override fun updateEmoji(
-        emojiId: String,
-        requestId: UUID,
-        requesterId: Long,
-        emojiName: String,
-        imageFileId: String,
-        imageUrl: String,
-        aliases: Array<String>,
-        license: String?,
-        sensitive: Boolean,
-        comment: String?
-    ) {
-        TODO("Not yet implemented")
     }
 }

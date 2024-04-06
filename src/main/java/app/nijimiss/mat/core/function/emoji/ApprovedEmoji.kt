@@ -16,11 +16,12 @@
 
 package app.nijimiss.mat.core.function.emoji
 
+import app.nijimiss.mat.core.entities.ApprovedRequestBase
 import java.util.*
 
 data class ApprovedEmoji(
-    val requestId: UUID,
-    val requesterId: Long,
+    override val requestId: UUID,
+    override val requesterId: Long,
     override val emojiName: String,
     override val imageFileId: String,
     override val imageUrl: String,
@@ -29,8 +30,8 @@ data class ApprovedEmoji(
     override val sensitive: Boolean,
     override val localOnly: Boolean,
     override val comment: String?,
-    val createAt: Long,
-    val approvedEmojiId: UUID?,
-    val approverId: Long,
-    val approvedAt: Long
-) : Emoji
+    override val createAt: Long,
+    override val approvedItemId: String?,
+    override val approverId: Long,
+    override val approvedAt: Long
+) : Emoji, ApprovedRequestBase

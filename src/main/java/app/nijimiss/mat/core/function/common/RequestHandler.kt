@@ -14,18 +14,11 @@
  * limitations under the License.
  */
 
-package app.nijimiss.mat.core.function.ad
+package app.nijimiss.mat.core.function.common
 
 import app.nijimiss.mat.core.entities.RequestBase
-import java.util.*
 
-data class AdRequest(
-    override val requestId: UUID,
-    override val requesterId: Long,
-    override val imageFileId: String,
-    override val imageUrl: String,
-    val linkUrl: String,
-    override val comment: String,
-    override val createAt: Long,
-    val endAt: Long?
-) : RequestBase
+interface RequestHandler {
+
+    fun <T : RequestBase> requestCreate(context: T)
+}

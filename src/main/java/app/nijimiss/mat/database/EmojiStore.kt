@@ -80,7 +80,7 @@ class EmojiStore(connector: DatabaseConnector) : DatabaseTable(connector, "emoji
                             rs.getBoolean("local_only"),
                             rs.getString("comment"),
                             rs.getTimestamp("created_at").time,
-                            UUID.fromString(rs.getString("approved_emoji_id")),
+                            rs.getString("approved_emoji_id"),
                             rs.getLong("approver_id"),
                             rs.getTimestamp("approved_at").time
                         )
@@ -113,12 +113,12 @@ class EmojiStore(connector: DatabaseConnector) : DatabaseTable(connector, "emoji
     }
 
     @Throws(SQLException::class)
-    fun getEmojiRequest(requestId: String): EmojiRequest? {
+    fun getEmojiRequest(requestId: UUID): EmojiRequest? {
         connector.connection.use { connection ->
             connection.prepareStatement(
                 "SELECT * FROM $tableName WHERE request_id = ?"
             ).use { ps ->
-                ps.setString(1, requestId)
+                ps.setString(1, requestId.toString())
                 ps.executeQuery().use { rs ->
                     if (rs.next()) {
                         return EmojiRequest(
@@ -188,12 +188,12 @@ class EmojiStore(connector: DatabaseConnector) : DatabaseTable(connector, "emoji
     }
 
     @Throws(SQLException::class)
-    fun rejectEmojiRequest(requestId: String) {
+    fun rejectEmojiRequest(requestId: UUID) {
         connector.connection.use { connection ->
             connection.prepareStatement(
                 "DELETE FROM $tableName WHERE request_id = ?"
             ).use { ps ->
-                ps.setString(1, requestId)
+                ps.setString(1, requestId.toString())
                 ps.execute()
             }
         }

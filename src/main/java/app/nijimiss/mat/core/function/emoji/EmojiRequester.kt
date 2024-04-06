@@ -17,6 +17,7 @@
 package app.nijimiss.mat.core.function.emoji
 
 import app.nijimiss.mat.MisskeyAdminTools
+import app.nijimiss.mat.core.function.common.RequestHandler
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
@@ -49,7 +50,7 @@ class EmojiRequester(
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
     private val emojiManagerConfig: EmojiManagerConfig
     private val emojiService: EmojiService
-    private val requesterHandler: MutableList<RequesterHandler> = mutableListOf()
+    private val requesterHandler: MutableList<RequestHandler> = mutableListOf()
     private val updateWaitlist: MutableMap<UUID, EmojiRequest> = mutableMapOf()
 
 
@@ -209,16 +210,20 @@ class EmojiRequester(
                     }
 
                     requesterHandler.forEach {
-                        it.requestEmoji(
-                            UUID.randomUUID(),
-                            context.invoker.idLong,
-                            name,
-                            uploadedFile[0]!!,
-                            uploadedFile[1]!!,
-                            tag.toTypedArray(),
-                            license,
-                            isSensitive,
-                            description
+                        it.requestCreate(
+                            EmojiRequest(
+                                UUID.randomUUID(),
+                                context.invoker.idLong,
+                                name,
+                                uploadedFile[0]!!,
+                                uploadedFile[1]!!,
+                                tag.toTypedArray(),
+                                license,
+                                isSensitive,
+                                false,
+                                description,
+                                System.currentTimeMillis()
+                            )
                         )
                     }
 
@@ -244,7 +249,7 @@ class EmojiRequester(
     }
 
 
-    fun registerHandler(handler: RequesterHandler) {
+    fun registerHandler(handler: RequestHandler) {
         requesterHandler.add(handler)
     }
 

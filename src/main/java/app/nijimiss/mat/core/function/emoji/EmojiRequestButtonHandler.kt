@@ -17,6 +17,8 @@
 package app.nijimiss.mat.core.function.emoji
 
 import app.nijimiss.mat.MisskeyAdminTools
+import app.nijimiss.mat.core.entities.RequestBase
+import app.nijimiss.mat.core.function.common.RequestButtonHandler
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
@@ -27,15 +29,15 @@ import app.nijimiss.mat.entities.Emoji
 import com.fasterxml.jackson.databind.ObjectMapper
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
-import net.dv8tion.jda.api.hooks.ListenerAdapter
 import page.nafuchoco.neobot.api.module.NeoModuleLogger
 import java.awt.Color
+import java.util.*
 
 class EmojiRequestButtonHandler(
     private val accountsStore: AccountsStore,
     private val emojiStore: EmojiStore,
     private val requestManager: ApiRequestManager,
-) : ListenerAdapter() {
+) : RequestButtonHandler(requestManager) {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
@@ -49,69 +51,74 @@ class EmojiRequestButtonHandler(
         val action = args[1]
         val extendInfo = if (args.size > 3) args.copyOfRange(3, args.size) else null
 
+        val context = emojiStore.getEmojiRequest(UUID.fromString(processId))
+        if (context == null) {
+            logger.warn("The specified request does not exist.")
+            return
+        }
+
         when (action) {
             "accept" -> {
-                val request = emojiStore.getEmojiRequest(processId)
-                if (request == null) {
-                    logger.warn("The specified request does not exist.")
-                    return
-                }
-
-                event.deferEdit().queue()
-
-                val requesterId = accountsStore.getMisskeyId(request.requesterId)
-
-                val addEmoji = Add(
-                    request.emojiName,
-                    request.aliases,
-                    request.imageFileId,
-                    null,
-                    request.license,
-                    request.sensitive,
-                    request.localOnly,
-                    requesterId,
-                    null,
-                    arrayOf<String>()
-                )
-                requestManager.addRequest(addEmoji, object : ApiResponseHandler {
-                    override fun onSuccess(response: ApiResponse?) {
-                        val embedBuilder = EmbedBuilder(event.message.embeds[0])
-                            .setColor(Color.GREEN)
-                            .setDescription("Emoji has been added.")
-                        event.message.editMessageEmbeds(embedBuilder.build()).queue()
-                        event.message.editMessageComponents().queue()
-
-                        val emoji = MAPPER.readValue(
-                            response!!.body, Emoji::class.java
-                        )
-
-                        emojiStore.approveEmojiRequest(processId, event.member!!.idLong, emoji.id!!)
-                    }
-
-                    override fun onFailure(response: ApiResponse?) {
-                        event.hook.sendMessage(
-                            """
-                            An error occurred while adding the emoji.
-                            ```
-                            ${response?.body}
-                            ```
-                        """.trimIndent()
-                        ).queue()
-                    }
-                })
+                acceptRequest(event, context)
             }
 
             "deny" -> {
-                event.deferEdit().queue()
-
-                val embedBuilder = EmbedBuilder(event.message.embeds[0])
-                    .setColor(Color.GRAY)
-                    .setDescription("Emoji has been denied.")
-                event.message.editMessageEmbeds(embedBuilder.build()).queue()
-                event.message.editMessageComponents().queue()
-                emojiStore.rejectEmojiRequest(processId)
+                rejectRequest(event, context)
             }
         }
+    }
+
+    override fun <T : RequestBase> acceptRequest(event: ButtonInteractionEvent, context: T) {
+        if (context !is EmojiRequest) return
+
+        event.deferEdit().queue()
+
+        val requesterId = accountsStore.getMisskeyId(context.requesterId)
+        val addEmoji = Add(
+            context.emojiName,
+            context.aliases,
+            context.imageFileId,
+            null,
+            context.license,
+            context.sensitive,
+            context.localOnly,
+            requesterId,
+            null,
+            arrayOf<String>()
+        )
+
+        requestManager.addRequest(addEmoji, object : ApiResponseHandler {
+            override fun onSuccess(response: ApiResponse?) {
+                val embedBuilder = EmbedBuilder(event.message.embeds[0])
+                    .setColor(Color.GREEN)
+                    .setDescription("Emoji has been added.")
+                event.message.editMessageEmbeds(embedBuilder.build()).queue()
+                event.message.editMessageComponents().queue()
+
+                val emoji = MAPPER.readValue(
+                    response!!.body, Emoji::class.java
+                )
+
+                emojiStore.approveEmojiRequest(context.requestId.toString(), event.member!!.idLong, emoji.id!!)
+            }
+
+            override fun onFailure(response: ApiResponse?) {
+                event.hook.sendMessage(
+                    """
+                    An error occurred while adding the emoji.
+                    ```
+                    ${response?.body}
+                    ```
+                    """.trimIndent()
+                ).queue()
+            }
+        })
+    }
+
+    override fun <T : RequestBase> rejectRequest(event: ButtonInteractionEvent, context: T) {
+        super.rejectRequest(event, context)
+
+        emojiStore.rejectEmojiRequest(context.requestId)
     }
 
     companion object {
