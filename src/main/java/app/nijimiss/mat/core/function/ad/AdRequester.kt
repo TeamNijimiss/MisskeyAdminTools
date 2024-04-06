@@ -115,6 +115,16 @@ class AdRequester(
                 val link = context.options["link"]?.value as String
                 val endAt = context.options["end_at"]?.value as String?
 
+                if (context.invoker.roles.none { adManagerConfig.canRequestAdRoles.contains(it.idLong) }) {
+                    context.responseSender.sendMessage(
+                        """
+                        広告を出稿する権限がありません。
+                        You do not have permission to request ads.
+                        """.trimIndent()
+                    ).queue()
+                    return
+                }
+
                 // リンクが正しいURL形式かを確認する
                 if (!link.startsWith("http://") || !link.startsWith("https://")) {
                     context.responseSender.sendMessage(
@@ -165,7 +175,6 @@ class AdRequester(
                 // ファイルをアップロード
                 val uploadedFile = uploadImage(image)
 
-
                 // リクエストを送信
                 val requestId = UUID.randomUUID().toString()
                 requesterHandler.forEach {
@@ -183,7 +192,7 @@ class AdRequester(
 
             // Sub command "request" description
             override fun getDescription(): String {
-                return "絵文字をリクエストします。 / Request emoji."
+                return "広告を出稿します。 / Request ads."
             }
         })
 
@@ -202,13 +211,13 @@ class AdRequester(
     }
 
     override fun getDescription(): String {
-        return "広告をリクエストします。 / Request ads."
+        return "広告を出稿します。 / Request ads."
     }
 
     private fun uploadImage(image: Message.Attachment): Array<String?> {
         val uploadedFileId: Array<String?> = arrayOfNulls(2)
 
-        val file = File(MisskeyAdminTools.getInstance().dataFolder, "emoji/${image.fileName}")
+        val file = File(MisskeyAdminTools.getInstance().dataFolder, "ads/${image.fileName}")
         FileUtils.copyURLToFile(URL(image.url), file)
         val upload = Create(
             adManagerConfig.imageSaveFolderId.ifEmpty { null },

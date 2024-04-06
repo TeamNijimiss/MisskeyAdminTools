@@ -1,2 +1,6 @@
 targetReportChannel: 0 # Target report channel ID
 imageSaveFolderId: MISSKEY_FOLDER_ID # Folder ID to save the image
+canRequestAdRoles: # Roles that can request ads
+  - 000000000000
+  - 111111111111
+  - 222222222222

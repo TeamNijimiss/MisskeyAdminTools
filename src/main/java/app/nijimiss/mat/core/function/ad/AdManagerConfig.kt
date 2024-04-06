@@ -19,4 +19,5 @@ package app.nijimiss.mat.core.function.ad
 data class AdManagerConfig(
     val targetReportChannel: Long = 0,
     val imageSaveFolderId: String = "",
+    val canRequestAdRoles: List<Long> = emptyList(),
 )
