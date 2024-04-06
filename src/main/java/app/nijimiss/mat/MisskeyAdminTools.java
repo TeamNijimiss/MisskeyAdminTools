@@ -17,6 +17,7 @@
 package app.nijimiss.mat;
 
 import app.nijimiss.mat.core.function.ad.AdRequester;
+import app.nijimiss.mat.core.function.decoration.DecorationRequester;
 import app.nijimiss.mat.core.function.emoji.EmojiRequester;
 import app.nijimiss.mat.core.function.invite.InviteManager;
 import app.nijimiss.mat.core.function.link.DiscordMisskeyAccountLinker;
@@ -47,6 +48,7 @@ public class MisskeyAdminTools extends NeoModule {
     private AccountsStore accountsStore;
     private EmojiStore emojiStore;
     private AdStore adStore;
+    private DecorationStore decorationStore;
     private Map<String, ApiRequestManager> apiRequestManagers;
 
     private NewReportWatcher newReportWatcher;
@@ -54,6 +56,7 @@ public class MisskeyAdminTools extends NeoModule {
     private RoleSynchronizer roleSynchronizer;
     private EmojiRequester emojiRequester;
     private AdRequester adRequester;
+    private DecorationRequester decorationRequester;
     private InviteManager inviteManager;
 
     public static MisskeyAdminTools getInstance() {
@@ -92,6 +95,8 @@ public class MisskeyAdminTools extends NeoModule {
             emojiStore.createTable();
             adStore = new AdStore(getLauncher().getDatabaseConnector());
             adStore.createTable();
+            decorationStore = new DecorationStore(getLauncher().getDatabaseConnector());
+            decorationStore.createTable();
         } catch (SQLException e) {
             getModuleLogger().error("Failed to create a table in the database.", e);
         }
@@ -127,6 +132,11 @@ public class MisskeyAdminTools extends NeoModule {
             if (config.getFunction().getAdManager()) {
                 adRequester = new AdRequester(accountsStore, adStore, apiRequestManagers.get("default"));
                 registerCommand(adRequester);
+            }
+
+            if (config.getFunction().getDecorationManager()) {
+                decorationRequester = new DecorationRequester(accountsStore, decorationStore, apiRequestManagers.get("default"));
+                registerCommand(decorationRequester);
             }
         }
 
