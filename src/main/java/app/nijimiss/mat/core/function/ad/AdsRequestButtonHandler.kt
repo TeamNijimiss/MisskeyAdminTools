@@ -73,7 +73,7 @@ class AdsRequestButtonHandler(
         event.deferEdit().queue()
 
         val startsAt = System.currentTimeMillis()
-        val endsAt = context.endAt ?: (System.currentTimeMillis() + 86400000)
+        val endsAt = context.endAt ?: (System.currentTimeMillis() + 2678400000)
 
         val createAd = Create(
             context.linkUrl,

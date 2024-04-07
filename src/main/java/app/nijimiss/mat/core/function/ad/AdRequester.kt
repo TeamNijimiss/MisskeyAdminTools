@@ -142,7 +142,7 @@ class AdRequester(
                 if (endAt != null) {
                     try {
                         endAtDate = simpleDateFormat.parse(endAt)
-                        if (endAtDate.time < System.currentTimeMillis() || endAtDate.time > System.currentTimeMillis() + 2592000000) {
+                        if (endAtDate.time < System.currentTimeMillis() || endAtDate.time > System.currentTimeMillis() + 2678400000) {
                             context.responseSender.sendMessage(
                                 """
                                 終了日時は現在から1ヶ月後までの範囲で設定してください。
@@ -192,6 +192,9 @@ class AdRequester(
                         )
                     )
                 }
+
+                context.responseSender.sendMessage("広告の出稿リクエストが完了しました。 / The ad request has been completed.")
+                    .setEphemeral(true).queue()
             }
 
             // Sub command "request" description

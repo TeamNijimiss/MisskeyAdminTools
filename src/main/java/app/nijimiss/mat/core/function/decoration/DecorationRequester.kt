@@ -160,6 +160,9 @@ class DecorationRequester(
                         )
                     )
                 }
+
+                context.responseSender.sendMessage("装飾のリクエストが完了しました。 / The decoration request has been completed.")
+                    .setEphemeral(true).queue()
             }
 
             // Sub command "request" description
