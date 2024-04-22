@@ -126,7 +126,7 @@ class AutoClosure(
             }
 
             "cancel" -> {
-                event.hook.sendMessage(
+                event.reply(
                     """
                     通報のクローズをキャンセルしました。
                     Cancelled the report closure.
