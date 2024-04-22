@@ -61,7 +61,7 @@ class DecorationRequestReportSender(
             .addField("リクエストID / Request ID", context.requestId.toString(), false)
             .addField(
                 "リクエストユーザー / Request User",
-                "$context.requesterId (${accountsStore.getMisskeyId(context.requesterId)})", false
+                "${context.requesterId} (${accountsStore.getMisskeyId(context.requesterId)})", false
             )
             .addField("装飾名 / Decoration Name", context.decorationName, false)
             .addField("ライセンス / License", context.license ?: "None", false)
@@ -72,8 +72,8 @@ class DecorationRequestReportSender(
             .setColor(Color.RED)
         targetChannel.sendMessageEmbeds(requestInfo.build()).queue {
             val buttons = listOf(
-                Button.primary("deco_accept_$context.requestId", "承認 / Accept"),
-                Button.danger("deco_deny_$context.requestId", "拒否 / Deny")
+                Button.primary("deco_accept_${context.requestId}", "承認 / Accept"),
+                Button.danger("deco_deny_${context.requestId}", "拒否 / Deny")
             )
             it.editMessageComponents().setActionRow(buttons).queue()
         }

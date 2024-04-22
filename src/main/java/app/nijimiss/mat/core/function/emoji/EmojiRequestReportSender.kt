@@ -67,7 +67,7 @@ class EmojiRequestReportSender(
             .addField("リクエストID / Request ID", context.requestId.toString(), false)
             .addField(
                 "リクエストユーザー / Request User",
-                "$context.requesterId (${accountsStore.getMisskeyId(context.requesterId)})", false
+                "${context.requesterId} (${accountsStore.getMisskeyId(context.requesterId)})", false
             )
             .addField("絵文字名 / Emoji name", context.emojiName, false)
             .addField("エイリアス / Aliases", context.aliases.joinToString(", "), false)
@@ -80,8 +80,8 @@ class EmojiRequestReportSender(
             .setColor(Color.RED)
         targetChannel.sendMessageEmbeds(requestInfo.build()).queue {
             val buttons = listOf(
-                Button.primary("emoji_accept_$context.requestId", "承認 / Accept"),
-                Button.danger("emoji_deny_$context.requestId", "拒否 / Deny")
+                Button.primary("emoji_accept_${context.requestId}", "承認 / Accept"),
+                Button.danger("emoji_deny_${context.requestId}", "拒否 / Deny")
             )
             it.editMessageComponents().setActionRow(buttons).queue()
         }

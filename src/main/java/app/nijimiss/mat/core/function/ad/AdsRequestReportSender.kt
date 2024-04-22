@@ -62,7 +62,7 @@ class AdsRequestReportSender(
             .addField("リクエストID / Request ID", context.requestId.toString(), false)
             .addField(
                 "リクエストユーザー / Request User",
-                "$context.requesterId (${accountsStore.getMisskeyId(context.requesterId)})", false
+                "${context.requesterId} (${accountsStore.getMisskeyId(context.requesterId)})", false
             )
             .addField(
                 "終了日時 / End date",
@@ -76,8 +76,8 @@ class AdsRequestReportSender(
             .setColor(Color.RED)
         targetChannel.sendMessageEmbeds(requestInfo.build()).queue {
             val buttons = listOf(
-                Button.primary("ads_accept_$context.requestId", "承認 / Accept"),
-                Button.danger("ads_deny_$context.requestId", "拒否 / Deny")
+                Button.primary("ads_accept_${context.requestId}", "承認 / Accept"),
+                Button.danger("ads_deny_${context.requestId}", "拒否 / Deny")
             )
             it.editMessageComponents().setActionRow(buttons).queue()
         }
