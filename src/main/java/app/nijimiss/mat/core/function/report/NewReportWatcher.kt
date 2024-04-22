@@ -328,16 +328,18 @@ class NewReportWatcher(
                         userStore.updateAccountStatus(context.reportTargetUserId, "frozen")
 
                         // Resolve Report
-                        if (closeReport(context, event)) {
-                            val confirmButton = listOf(
-                                Button.danger(
-                                    "closure_close_${event.messageId}",
-                                    "同一投稿への通報を自動的にクローズしますか？ / Close report to same post?"
-                                ),
-                                Button.secondary("mod_clear_${processId}", "キャンセル / Cancel")
-                            ).map { ActionRow.of(it) }
-                            event.message.editMessageComponents(confirmButton).queue()
-                        }
+                        Thread {
+                            if (closeReport(context, event)) {
+                                val confirmButton = listOf(
+                                    Button.danger(
+                                        "closure_close_${event.messageId}",
+                                        "同一投稿への通報を自動的にクローズしますか？ / Close report to same post?"
+                                    ),
+                                    Button.secondary("mod_clear_${processId}", "キャンセル / Cancel")
+                                ).map { ActionRow.of(it) }
+                                event.message.editMessageComponents(confirmButton).queue()
+                            }
+                        }.start()
                     }
 
                     override fun onFailure(response: ApiResponse?) {
@@ -355,7 +357,7 @@ class NewReportWatcher(
                                 """.trimIndent(), response!!.statusCode, response.body
                         )
                     }
-                })
+                }).join()
             }
 
             "silence" -> {
@@ -381,15 +383,17 @@ class NewReportWatcher(
                         userStore.updateAccountStatus(context.reportTargetUserId, "muted")
 
                         // Resolve Report
-                        if (closeReport(context, event)) {
-                            val confirmButton = listOf(
-                                Button.danger(
-                                    "closure_close_${event.messageId}",
-                                    "同一投稿への通報を自動的にクローズしますか？ / Close report to same post?"
-                                ),
-                                Button.secondary("mod_clear_${processId}", "キャンセル / Cancel")
-                            ).map { ActionRow.of(it) }
-                            event.message.editMessageComponents(confirmButton).queue()
+                        Thread {
+                            if (closeReport(context, event)) {
+                                val confirmButton = listOf(
+                                    Button.danger(
+                                        "closure_close_${event.messageId}",
+                                        "同一投稿への通報を自動的にクローズしますか？ / Close report to same post?"
+                                    ),
+                                    Button.secondary("mod_clear_${processId}", "キャンセル / Cancel")
+                                ).map { ActionRow.of(it) }
+                                event.message.editMessageComponents(confirmButton).queue()
+                            }
                         }
                     }
 
