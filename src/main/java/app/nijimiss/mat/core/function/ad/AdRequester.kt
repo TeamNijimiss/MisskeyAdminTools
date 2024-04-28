@@ -127,7 +127,7 @@ class AdRequester(
                 }
 
                 // リンクが正しいURL形式かを確認する
-                if (!link.startsWith("http://") || !link.startsWith("https://")) {
+                if (!(link.startsWith("http://") || link.startsWith("https://"))) {
                     context.responseSender.sendMessage(
                         """
                         リンクは正しいURL形式で設定してください。
