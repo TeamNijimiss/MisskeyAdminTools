@@ -19,9 +19,10 @@ import app.nijimiss.mat.MisskeyAdminTools
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
+import app.nijimiss.mat.core.requests.misskey.elements.announcement.Display
+import app.nijimiss.mat.core.requests.misskey.elements.announcement.Icon
 import app.nijimiss.mat.core.requests.misskey.endpoints.admin.ResolveAbuseUserReport
-import app.nijimiss.mat.core.requests.misskey.endpoints.notes.Create
-import app.nijimiss.mat.core.requests.misskey.endpoints.notes.Create.Visibility
+import app.nijimiss.mat.core.requests.misskey.endpoints.admin.announcements.Create
 import app.nijimiss.mat.core.requests.misskey.endpoints.users.Show
 import app.nijimiss.mat.database.ReportsStore
 import app.nijimiss.mat.database.UserStore
@@ -167,22 +168,23 @@ class WarningSender(
                             return
                         }
 
-                        val createNote = Create(
-                            Visibility.SPECIFIED,
-                            arrayOf(user.id),
-                            context.warningMessage,
+                        val createAnnouncement = Create(
+                            "あなたの投稿はガイドラインに違反しています。 / Your post violates the guidelines.",
+                            context.warningMessage + if (!context.reportTargetNoteIds.isEmpty()) "\n\n対象の投稿 / Target post: " + context.reportTargetNoteIds.joinToString(
+                                "\n"
+                            ) { id -> "https://${MisskeyAdminTools.getInstance().config.authentication?.instanceHostname}/notes/$id" } else "",
+                            Icon.ERROR,
                             null,
-                            if (context.reportTargetNoteIds.isNotEmpty()) context.reportTargetNoteIds[0] else null,
-                            null,
-                            null,
-                            null,
+                            Display.DIALOG,
+                            true,
+                            60 * (userStore.getWarningCount(user.username!!) + 1),
+                            0,
                             false,
-                            false,
-                            false,
-                            false
+                            user.id
                         )
+                        createAnnouncement.serializeNulls = true
 
-                        requestManager.addRequest(createNote, object : ApiResponseHandler {
+                        requestManager.addRequest(createAnnouncement, object : ApiResponseHandler {
                             override fun onSuccess(response: ApiResponse?) {
                                 event.channel.retrieveMessageById(processId).queue { msg: Message ->
                                     if (msg.embeds.isEmpty()) return@queue
@@ -219,7 +221,7 @@ class WarningSender(
                                             ).queue()
 
                                             // Update User Warned Count
-                                            val warningCount = userStore.getWarningCount(user.username!!) + 1
+                                            val warningCount = userStore.getWarningCount(user.username) + 1
                                             userStore.updateWarningCount(user.username, warningCount)
                                             if (continuousWarningLimit < warningCount) {
                                                 event.hook.sendMessage(

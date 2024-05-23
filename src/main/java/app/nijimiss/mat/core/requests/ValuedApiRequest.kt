@@ -19,11 +19,11 @@ package app.nijimiss.mat.core.requests
 import org.apache.commons.lang3.StringUtils
 
 abstract class ValuedApiRequest : ApiRequest {
-    protected val data: MutableMap<String, Any> = LinkedHashMap()
+    protected val data: MutableMap<String, Any?> = LinkedHashMap()
 
     protected fun add(key: String, value: Any?) {
         require(!StringUtils.isBlank(key)) { "Key cannot be blank" }
-        if (value != null) data[key] = value
+        data[key] = value
     }
 
     protected fun remove(key: String) {

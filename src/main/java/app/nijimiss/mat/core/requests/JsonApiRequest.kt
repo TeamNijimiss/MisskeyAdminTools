@@ -16,16 +16,19 @@
 package app.nijimiss.mat.core.requests
 
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 
 abstract class JsonApiRequest : ValuedApiRequest() {
-    private val gson = Gson()
+    var serializeNulls = false
 
     override val body: RequestBody?
-        get() = gson.toJson(data).toRequestBody(MEDIA_TYPE_JSON)
+        get() = if (serializeNulls) GsonBuilder().serializeNulls().create().toJson(data)
+            .toRequestBody(MEDIA_TYPE_JSON) else Gson().toJson(data).toRequestBody(MEDIA_TYPE_JSON)
+
 
     companion object {
         private val MEDIA_TYPE_JSON: MediaType = "application/json; charset=utf-8".toMediaType()
