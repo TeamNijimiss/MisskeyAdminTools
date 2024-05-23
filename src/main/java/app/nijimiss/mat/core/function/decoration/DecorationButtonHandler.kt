@@ -22,7 +22,7 @@ import app.nijimiss.mat.core.function.common.RequestButtonHandler
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
 import app.nijimiss.mat.core.requests.ApiResponseHandler
-import app.nijimiss.mat.core.requests.misskey.decoration.Create
+import app.nijimiss.mat.core.requests.misskey.endpoints.decoration.Create
 import app.nijimiss.mat.database.AccountsStore
 import app.nijimiss.mat.database.DecorationStore
 import net.dv8tion.jda.api.EmbedBuilder

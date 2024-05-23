@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package app.nijimiss.mat.core.requests.misskey.decoration;
+package app.nijimiss.mat.core.requests.misskey.endpoints.decoration;
 
 import app.nijimiss.mat.core.requests.misskey.RequireCredentialRequest;
 import org.jetbrains.annotations.NotNull;
