@@ -73,6 +73,7 @@ class AdsRequestReportSender(
             .setFooter("Request date")
             .setTimestamp(Date().toInstant())
             .setImage(context.imageUrl)
+            .setUrl(context.linkUrl)
             .setColor(Color.RED)
         targetChannel.sendMessageEmbeds(requestInfo.build()).queue {
             val buttons = listOf(
