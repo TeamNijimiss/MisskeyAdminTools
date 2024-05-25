@@ -15,10 +15,10 @@
  */
 
 plugins {
-    kotlin("jvm") version "1.9.23"
+    kotlin("jvm") version "2.0.0"
     id("com.github.johnrengelman.shadow") version "7.1.2"
-    id("org.jetbrains.kotlin.plugin.lombok") version "1.8.10"
-    id("io.freefair.lombok") version "6.4.3"
+    id("org.jetbrains.kotlin.plugin.lombok") version "2.0.0"
+    id("io.freefair.lombok") version "8.6"
 }
 
 group = "app.nijimiss"
@@ -60,15 +60,22 @@ dependencies {
     implementation("com.github.devcsrj:slf4j-okhttp3-logging-interceptor:1.0.1")
     compileOnly("com.github.NeoBotDevelopment:NeoBotApi:2.3.0")
 
-    implementation("com.konghq:unirest-java:3.14.5")
+    // Ktor
+    implementation("io.ktor:ktor-server-core:2.3.11")
+    implementation("io.ktor:ktor-server-netty:2.3.11")
+    implementation("io.ktor:ktor-server-content-negotiation:2.3.11")
+    implementation("io.ktor:ktor-serialization-jackson:2.3.11")
 
+    // Unirest
+    implementation("com.konghq:unirest-java:3.14.5")
 
     // Parser
     implementation("com.google.code.gson:gson:2.10.1")
-    implementation("com.fasterxml.jackson.core:jackson-core:2.17.0")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.17.0")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.0")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.17.0")
+    implementation("com.fasterxml.jackson.core:jackson-core:2.17.1")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.17.1")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.1")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.17.1")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.1")
 
     // Commons Library
     implementation("commons-io:commons-io:2.16.0")

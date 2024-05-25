@@ -17,38 +17,50 @@
 package app.nijimiss.mat.core.function.link
 
 import app.nijimiss.mat.MisskeyAdminTools
+import app.nijimiss.mat.core.function.link.webhook.WebhookServer
 import app.nijimiss.mat.core.requests.ApiRequestManager
-import app.nijimiss.mat.core.requests.ApiResponse
-import app.nijimiss.mat.core.requests.ApiResponseHandler
-import app.nijimiss.mat.core.requests.misskey.endpoints.users.Show
 import app.nijimiss.mat.database.AccountsStore
-import app.nijimiss.mat.entities.FullUser
-import com.fasterxml.jackson.databind.ObjectMapper
+import app.nijimiss.mat.entities.User
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import page.nafuchoco.neobot.api.command.CommandContext
 import page.nafuchoco.neobot.api.command.CommandExecutor
 import page.nafuchoco.neobot.api.command.CommandValueOption
 import page.nafuchoco.neobot.api.module.NeoModuleLogger
-import java.util.*
 
 
 class DiscordMisskeyAccountLinker(
     private val accountsStore: AccountsStore,
     private val requestManager: ApiRequestManager,
-) : CommandExecutor("link") {
+) : CommandExecutor("verify") {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
     private val handlers: MutableList<LinkerHandler> = mutableListOf()
+    private val waitingAccounts = mutableMapOf<User, String>()
 
     init {
         options.add(
             CommandValueOption(
                 OptionType.STRING,
-                "username",
-                "Misskeyのユーザー名 / Username of Misskey (ex: nafu_at)",
+                "verify_code",
+                "管理用BOTから送信された認証コードを入力してください。 / Please enter the authentication code sent by the management BOT.",
                 true,
                 false
             )
         )
+        options.add(
+            CommandValueOption(
+                OptionType.BOOLEAN,
+                "force",
+                "既に紐付けられているアカウントを強制的に解除して再度紐付けます。 / Force unlink the already linked account and link again.",
+                false,
+                false
+            )
+        )
+
+        WebhookServer(this, accountsStore, requestManager)
+    }
+
+    fun onWaitingLink(misskeyUser: User, verify_code: String) {
+        waitingAccounts[misskeyUser] = verify_code
     }
 
     fun registerHandler(handler: LinkerHandler) {
@@ -57,67 +69,49 @@ class DiscordMisskeyAccountLinker(
 
     override fun onInvoke(context: CommandContext) {
         var update = false
-        if (accountsStore.getMisskeyId(context.invoker.idLong) != null) {
-            val updatedTime = accountsStore.getUpdatedTime(context.invoker.idLong)
-            // check last update before 30 days
-            if (updatedTime != null && Calendar.getInstance().timeInMillis - updatedTime < 2592000000) {
-                context.responseSender.sendMessage("30日以内に紐付けを実行場合は、再度紐付けを行うことができません。 / If you link within 30 days, you cannot link again.")
+
+        val verify_code = context.options["verify_code"]?.value as String?
+        val misskeyUser = waitingAccounts.entries.find { it.value == verify_code }?.key
+        val force = context.options["force"]?.value as Boolean? ?: false
+
+        // Check verify code
+        if (misskeyUser == null) {
+            context.responseSender.sendMessage("認証コードが正しくありません。 / The authentication code is incorrect.")
+                .queue()
+            return
+        }
+
+        // Check if the Misskey account is already linked
+        val misskeyId = misskeyUser.id!!
+        if (accountsStore.getMisskeyId(context.invoker.idLong) != null && accountsStore.getMisskeyId(context.invoker.idLong) != misskeyId) {
+            if (!force) {
+                context.responseSender.sendMessage("このDiscordアカウントは既に他のMisskeyアカウントに紐付けられています。再紐付けを行う場合は`force`オプションを付けてください。 / This Discord account is already linked to another Misskey account. If you want to relink, please add the `force` option.")
                     .queue()
                 return
             } else {
-                update = true
+                handlers.forEach { it.onUnlink(context.invoker.idLong, misskeyId) } // Unlink old discord account
+                accountsStore.removeAccount(context.invoker.idLong)
             }
+        } else if (accountsStore.getDiscordId(misskeyId) != null) {
+            update = true
         }
 
-        var username = context.options["username"]!!.value as String
+        if (update) {
+            handlers.forEach { it.onUnlink(context.invoker.idLong, misskeyId) } // Unlink old misskey account
+            accountsStore.updateAccount(
+                misskeyId,
+                context.invoker.idLong
+            )
+        } else accountsStore.addAccount(context.invoker.idLong, misskeyId)
 
-        // username start with @ -> remove @
-        if (username.startsWith("@")) username = username.substring(1)
+        handlers.forEach { it.onLink(context.invoker.idLong, misskeyId) }
+        context.responseSender.sendMessage("Misskey ID `${misskeyUser.username}` とDiscordアカウントを紐付けました。 / Linked Misskey ID `${misskeyUser.username}` and Discord account.")
+            .queue()
 
-        val userShow = Show(username, Show.SearchType.USERNAME)
-        requestManager.addRequest(userShow, object : ApiResponseHandler {
-            override fun onSuccess(response: ApiResponse?) {
-                val user = MAPPER.readValue(response!!.body, FullUser::class.java)
-
-                if (user.id != null) {
-                    if (accountsStore.getDiscordId(user.id) != null) {
-                        context.responseSender.sendMessage("このMisskeyアカウントは既に紐付けられています。 / This Misskey account is already linked.")
-                            .queue()
-                        return
-                    }
-
-                    if (update) {
-                        handlers.forEach { it.onUnlink(context.invoker.idLong, user.id) } // Unlink old misskey account
-                        accountsStore.updateAccount(
-                            context.invoker.idLong,
-                            user.id
-                        )
-                    } else accountsStore.addAccount(context.invoker.idLong, user.id)
-
-                    handlers.forEach { it.onLink(context.invoker.idLong, user.id) }
-                    context.responseSender.sendMessage("Misskey ID `${user.username}` とDiscordアカウントを紐付けました。 / Linked Misskey ID `${user.username}` and Discord account.")
-                        .queue()
-                } else {
-                    handlers.forEach { it.onLinkFailed(context.invoker.idLong) }
-                    context.responseSender.sendMessage("ユーザーが見つかりませんでした。 / User not found.").queue()
-                    logger.error("Failed to get user.")
-                }
-            }
-
-            override fun onFailure(response: ApiResponse?) {
-                handlers.forEach { it.onLinkFailed(context.invoker.idLong) }
-                context.responseSender.sendMessage("ユーザー情報の取得に失敗しました。 / Failed to get user information.")
-                    .queue()
-                logger.error("Failed to get user")
-            }
-        })
+        waitingAccounts.remove(misskeyUser)
     }
 
     override fun getDescription(): String {
         return "DiscordアカウントとMisskeyアカウントを紐付けます。 / Link Discord account and Misskey account."
-    }
-
-    companion object {
-        private val MAPPER = ObjectMapper()
     }
 }

@@ -40,13 +40,13 @@ class AccountsStore(connector: DatabaseConnector) : DatabaseTable(connector, "ac
     }
 
     @Throws(SQLException::class)
-    fun updateAccount(discordId: Long, misskeyId: String) {
+    fun updateAccount(misskeyId: String, discordId: Long) {
         connector.connection.use { connection ->
             connection.prepareStatement(
-                "UPDATE $tableName SET misskey_id = ? WHERE discord_id = ?"
+                "UPDATE $tableName SET discord_id = ? WHERE misskey_id = ?"
             ).use { ps ->
-                ps.setString(1, misskeyId)
-                ps.setLong(2, discordId)
+                ps.setLong(1, discordId)
+                ps.setString(2, misskeyId)
                 ps.execute()
             }
         }
@@ -87,12 +87,12 @@ class AccountsStore(connector: DatabaseConnector) : DatabaseTable(connector, "ac
     }
 
     @Throws(SQLException::class)
-    fun getUpdatedTime(discordId: Long): Long? {
+    fun getUpdatedTime(misskeyId: String): Long? {
         connector.connection.use { connection ->
             connection.prepareStatement(
-                "SELECT * FROM $tableName WHERE discord_id = ?"
+                "SELECT * FROM $tableName WHERE misskey_id = ?"
             ).use { ps ->
-                ps.setLong(1, discordId)
+                ps.setString(1, misskeyId)
                 ps.execute()
                 val rs = ps.resultSet
                 if (rs.next()) {
