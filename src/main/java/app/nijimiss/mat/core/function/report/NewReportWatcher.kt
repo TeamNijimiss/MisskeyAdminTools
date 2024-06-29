@@ -429,26 +429,7 @@ class NewReportWatcher(
                 warningSender.sendWarning(event, context)
             }
 
-            "problem" -> {
-                // Edit Report Embed
-                addReportStatus(event.message, "問題なし / No problem", event.user.name)
-                reportStore.removeReport(event.message.idLong)
-
-                // Resolve Report
-                Thread {
-                    if (closeReport(context, event)) {
-                        val confirmButton = listOf(
-                            Button.danger(
-                                "closure_close_${event.messageId}",
-                                "同一投稿への通報を自動的にクローズしますか？ / Close report to same post?"
-                            ),
-                            Button.secondary("mod_clear_${processId}", "キャンセル / Cancel")
-                        ).map { ActionRow.of(it) }
-                        event.message.editMessageComponents(confirmButton).queue()
-                    }
-                }.start()
-            }
-
+            "problem",
             "noaction" -> {
                 // Resolve Report
                 closeInvalidReport(context, event)
@@ -476,8 +457,7 @@ class NewReportWatcher(
             Button.secondary(
                 "mod_noaction_${reportId}",
                 "重複・無効 / No Action"
-            ), // why id 0? because it's not used
-            Button.success("mod_problem_${reportId}", "問題なし / No problem"),
+            )
         ).map { ActionRow.of(it) }
     }
 
