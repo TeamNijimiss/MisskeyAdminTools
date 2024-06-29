@@ -21,11 +21,13 @@ import app.nijimiss.mat.core.function.link.webhook.WebhookServer
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.database.AccountsStore
 import app.nijimiss.mat.entities.User
+import app.nijimiss.mat.utils.ExpiringMap
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import page.nafuchoco.neobot.api.command.CommandContext
 import page.nafuchoco.neobot.api.command.CommandExecutor
 import page.nafuchoco.neobot.api.command.CommandValueOption
 import page.nafuchoco.neobot.api.module.NeoModuleLogger
+import java.util.concurrent.TimeUnit
 
 
 class DiscordMisskeyAccountLinker(
@@ -34,7 +36,7 @@ class DiscordMisskeyAccountLinker(
 ) : CommandExecutor("verify") {
     private val logger: NeoModuleLogger = MisskeyAdminTools.getInstance().moduleLogger
     private val handlers: MutableList<LinkerHandler> = mutableListOf()
-    private val waitingAccounts = mutableMapOf<User, String>()
+    private val waitingAccounts = ExpiringMap<User, String>(15, TimeUnit.MINUTES)
 
     init {
         options.add(

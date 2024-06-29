@@ -16,7 +16,6 @@
 
 package app.nijimiss.mat.core.function.link.webhook
 
-import app.nijimiss.mat.MisskeyAdminTools
 import app.nijimiss.mat.core.function.link.DiscordMisskeyAccountLinker
 import app.nijimiss.mat.core.requests.ApiRequestManager
 import app.nijimiss.mat.core.requests.ApiResponse
@@ -87,7 +86,7 @@ class WebhookServer(
                         val updatedTime =
                             request.body.note.user.id?.let { it1 -> accountsStore.getUpdatedTime(it1) }
                         // check last update before 30 days
-                        MisskeyAdminTools.getInstance().moduleLogger.info("Updated Time: $updatedTime, Current Time: ${System.currentTimeMillis()}, Diff: ${System.currentTimeMillis() - updatedTime!!}")
+                        //MisskeyAdminTools.getInstance().moduleLogger.info("Updated Time: $updatedTime, Current Time: ${System.currentTimeMillis()}, Diff: ${System.currentTimeMillis() - updatedTime!!}")
                         if (updatedTime != null && System.currentTimeMillis() - updatedTime < 2592000000) {
                             responseMessage =
                                 "最後の紐付けから30日間は再度紐付けを行うことができません。 / If you link within 30 days, you cannot link again."
