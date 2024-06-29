@@ -224,7 +224,7 @@ class WarningSender(
                                             val warningCount = userStore.getWarningCount(user.username) + 1
                                             userStore.updateWarningCount(user.username, warningCount)
                                             if (continuousWarningLimit < warningCount) {
-                                                event.hook.sendMessage(
+                                                msg.reply(
                                                     """
                                                     警告回数が規定値を超えています。今後のユーザーの動向に注意してください。
                                                     The number of warnings exceeds the limit. Please pay attention to the future behavior of the user.
