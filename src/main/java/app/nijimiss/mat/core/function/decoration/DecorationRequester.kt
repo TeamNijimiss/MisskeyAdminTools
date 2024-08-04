@@ -36,9 +36,10 @@ import page.nafuchoco.neobot.api.command.SubCommandOption
 import page.nafuchoco.neobot.api.module.NeoModuleLogger
 import java.io.File
 import java.io.IOException
-import java.net.URL
+import java.net.URI
 import java.nio.file.Files
 import java.util.*
+import javax.imageio.ImageIO
 
 class DecorationRequester(
     private val accountsStore: AccountsStore,
@@ -142,7 +143,13 @@ class DecorationRequester(
                 }
 
                 // ファイルをアップロード
-                val uploadedFile = uploadImage(image)
+                val uploadedFile = try {
+                    uploadImage(image)
+                } catch (e: IllegalArgumentException) {
+                    context.responseSender.sendMessage("画像のサイズは512x512である必要があります。 / The image size must be 512x512.")
+                        .setEphemeral(true).queue()
+                    return
+                }
 
                 // リクエストを送信
                 val requestId = UUID.randomUUID()
@@ -191,7 +198,14 @@ class DecorationRequester(
         val uploadedFileId: Array<String?> = arrayOfNulls(2)
 
         val file = File(MisskeyAdminTools.getInstance().dataFolder, "decoration/${image.fileName}")
-        FileUtils.copyURLToFile(URL(image.url), file)
+        FileUtils.copyURLToFile(URI(image.url).toURL(), file)
+
+        val imageObject = ImageIO.read(file)
+        if (imageObject.width != 512 || imageObject.height != 512) {
+            file.delete()
+            throw IllegalArgumentException("The image size must be 512x512.")
+        }
+
         val upload = Create(
             decorationManagerConfig.imageSaveFolderId.ifEmpty { null },
             image.fileName,

@@ -37,9 +37,10 @@ import page.nafuchoco.neobot.api.command.SubCommandOption
 import page.nafuchoco.neobot.api.module.NeoModuleLogger
 import java.io.File
 import java.io.IOException
-import java.net.URL
+import java.net.URI
 import java.nio.file.Files
 import java.util.*
+import javax.imageio.ImageIO
 
 class EmojiRequester(
     private val accountsStore: AccountsStore,
@@ -196,32 +197,37 @@ class EmojiRequester(
                 }
 
                 // Upload emoji image file to Misskey
-                uploadImage(image).let { uploadedFile ->
-                    if (uploadedFile[0] == null || uploadedFile[1] == null) {
-                        context.responseSender.sendMessage("絵文字のリクエストに失敗しました。 / Failed to request emoji.")
-                            .setEphemeral(true).queue()
-                        return
-                    }
+                try {
+                    uploadImage(image).let { uploadedFile ->
+                        if (uploadedFile[0] == null || uploadedFile[1] == null) {
+                            context.responseSender.sendMessage("絵文字のリクエストに失敗しました。 / Failed to request emoji.")
+                                .setEphemeral(true).queue()
+                            return
+                        }
 
-                    requesterHandler.forEach {
-                        it.requestCreate(
-                            EmojiRequest(
-                                UUID.randomUUID(),
-                                context.invoker.idLong,
-                                name,
-                                uploadedFile[0]!!,
-                                uploadedFile[1]!!,
-                                tag.toTypedArray(),
-                                license,
-                                isSensitive,
-                                false,
-                                description,
-                                System.currentTimeMillis()
+                        requesterHandler.forEach {
+                            it.requestCreate(
+                                EmojiRequest(
+                                    UUID.randomUUID(),
+                                    context.invoker.idLong,
+                                    name,
+                                    uploadedFile[0]!!,
+                                    uploadedFile[1]!!,
+                                    tag.toTypedArray(),
+                                    license,
+                                    isSensitive,
+                                    false,
+                                    description,
+                                    System.currentTimeMillis()
+                                )
                             )
-                        )
-                    }
+                        }
 
-                    context.responseSender.sendMessage("絵文字のリクエストが完了しました。 / Emoji request completed.")
+                        context.responseSender.sendMessage("絵文字のリクエストが完了しました。 / Emoji request completed.")
+                            .setEphemeral(true).queue()
+                    }
+                } catch (e: IllegalArgumentException) {
+                    context.responseSender.sendMessage("画像のサイズが大きすぎます。 / The image size is too large.")
                         .setEphemeral(true).queue()
                 }
             }
@@ -268,7 +274,14 @@ class EmojiRequester(
         val uploadedFileId: Array<String?> = arrayOfNulls(2)
 
         val file = File(MisskeyAdminTools.getInstance().dataFolder, "emoji/${image.fileName}")
-        FileUtils.copyURLToFile(URL(image.url), file)
+        FileUtils.copyURLToFile(URI(image.url).toURL(), file)
+
+        val imageObject = ImageIO.read(file)
+        if (imageObject.width > 512 || imageObject.height > 512 || Files.size(file.toPath()) > 71680) { // 70KB
+            file.delete()
+            throw IllegalArgumentException("The image size is too large.")
+        }
+
         val upload = Create(
             emojiManagerConfig.imageSaveFolderId.ifEmpty { null },
             image.fileName,
