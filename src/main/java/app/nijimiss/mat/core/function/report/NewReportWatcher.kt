@@ -25,6 +25,7 @@ import app.nijimiss.mat.core.requests.misskey.endpoints.admin.ResolveAbuseUserRe
 import app.nijimiss.mat.core.requests.misskey.endpoints.admin.SuspendUser
 import app.nijimiss.mat.core.requests.misskey.endpoints.admin.roles.Assign
 import app.nijimiss.mat.core.requests.misskey.endpoints.users.Show
+import app.nijimiss.mat.core.requests.other.TakeCaptureRequest
 import app.nijimiss.mat.database.MATSystemDataStore
 import app.nijimiss.mat.database.ReportsStore
 import app.nijimiss.mat.database.UserStore
@@ -33,6 +34,7 @@ import app.nijimiss.mat.entities.admin.Report
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.google.gson.Gson
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Message
@@ -70,6 +72,7 @@ class NewReportWatcher(
     private val warningSender: WarningSender?
     private val silenceRoleId: String?
     private val superUserRoleIds: List<Long>
+    private val captureRequestManager: ApiRequestManager?
 
     init {
         val configFile = File(MisskeyAdminTools.getInstance().dataFolder, "ReportWatcherConfig.yaml")
@@ -104,6 +107,13 @@ class NewReportWatcher(
             }
         if (warningSender == null) logger.warn("The warning sender is not set.")
 
+        captureRequestManager = watcherConfig.gyotakuAddress?.let {
+            ApiRequestManager(
+                it,
+                ""
+            )
+        }
+
         targetReportChannel =
             watcherConfig.targetReportChannel ?: throw IllegalStateException("The target report channel is not set.")
         silenceRoleId = watcherConfig.silenceRoleId
@@ -118,94 +128,26 @@ class NewReportWatcher(
         val sinceId: String? = try {
             systemStore.getOption("lastCheckedReport")
         } catch (e: SQLException) {
-            MisskeyAdminTools.getInstance().moduleLogger
-                .error("An error occurred while getting the last checked report.", e)
+            logger.error("An error occurred while getting the last checked report.", e)
             return
         }
 
-        val abuseUserReports = AbuseUserReports(10, sinceId, null, "unresolved", "combined", "combined", false)
-        requestManager.addRequest(abuseUserReports, object : ApiResponseHandler {
+        var abuseUserReports: List<Report> = emptyList()
+        val getAbuseUserReports = AbuseUserReports(10, sinceId, null, "unresolved", "combined", "combined", false)
+        requestManager.addRequest(getAbuseUserReports, object : ApiResponseHandler {
             override fun onSuccess(response: ApiResponse?) {
                 try {
                     val reports = MAPPER.readValue(
                         response!!.body, object : TypeReference<List<Report>>() {})
                     if (sinceId == null) Collections.reverse(reports) // 実質的には不変ではない
 
-                    for (report in reports) {
-                        val reportNotes =
-                            if (report.comment != null) NOTE_URL_PATTERN.matcher(report.comment) else null
-                        val noteIds = reportNotes!!.results().map { it.group(2) }.distinct().toList()
+                    abuseUserReports = reports
 
-                        val embedBuilder = EmbedBuilder()
-                        embedBuilder.setTitle("通報 / Report")
-                        embedBuilder.setColor(Color.getHSBColor(0.03f, 0.39f, 0.49f))
-                        embedBuilder.setDescription(report.comment)
-                        StringUtils.defaultIfEmpty(
-                            report.reporter!!.username, "null"
-                        )?.let {
-                            embedBuilder.addField(
-                                "通報者 / Reporter", it, true
-                            )
-                        }
-                        StringUtils.defaultIfEmpty(
-                            report.targetUser!!.username, "null"
-                        )?.let {
-                            embedBuilder.addField(
-                                "通報されたユーザー / Reported User", it, true
-                            )
-                        }
-                        StringUtils.defaultIfEmpty(
-                            report.createdAt, "N/A"
-                        )?.let {
-                            embedBuilder.addField(
-                                "通報された日時 / Reported Date", it, true
-                            )
-                        }
-                        StringUtils.defaultIfEmpty(
-                            convertCategoryToHumanReadable(report.category), "N/A"
-                        )?.let {
-                            embedBuilder.addField(
-                                "通報カテゴリー / Report Category", it, true
-                            )
-                        }
-                        for (noteInfo in noteIds) {
-                            embedBuilder.addField(
-                                "通報された投稿 / Reported Note", noteInfo, true
-                            )
-                        }
-                        embedBuilder.setFooter("通報 ID: " + report.id)
-
-
-                        discordApi.getTextChannelById(targetReportChannel)
-                            ?.sendMessageEmbeds(embedBuilder.build())
-                            ?.queue { result ->
-                                logger.debug("Report message sent. ID: " + result.id)
-
-
-                                result.editMessageComponents(getMainMenu(report.id!!)).queue()
-
-                                val reportContext = ReportContext(
-                                    report.id,
-                                    result.idLong,
-                                    report.targetUserID!!,
-                                    noteIds
-                                )
-                                try {
-                                    reportStore.addReport(reportContext)
-                                } catch (e: SQLException) {
-                                    MisskeyAdminTools.getInstance().moduleLogger.error(
-                                        "An error occurred while adding the report.", e
-                                    )
-                                }
-                            }
-
-                        report.targetUser.username?.let { userStore.registerUser(it) } // 通報されたユーザーがNullになることはないはず。
-                    }
                     if (reports.isNotEmpty()) systemStore.setOption("lastCheckedReport", reports[reports.size - 1].id)
                 } catch (e: JsonProcessingException) {
-                    MisskeyAdminTools.getInstance().moduleLogger.error("An error occurred while parsing the report.", e)
+                    logger.error("An error occurred while parsing the report.", e)
                 } catch (e: SQLException) {
-                    MisskeyAdminTools.getInstance().moduleLogger.error(
+                    logger.error(
                         "An error occurred while updating the last checked report.",
                         e
                     )
@@ -213,14 +155,141 @@ class NewReportWatcher(
             }
 
             override fun onFailure(response: ApiResponse?) {
-                MisskeyAdminTools.getInstance().moduleLogger.error(
+                logger.error(
                     """
                     An error occurred while getting the report.
                     Response Code: {}, Body: {}
                     """.trimIndent(), response!!.statusCode, response.body
                 )
             }
-        })
+        }).join()
+
+        for (report in abuseUserReports) {
+            val reportNotes =
+                if (report.comment != null) NOTE_URL_PATTERN.matcher(report.comment) else null
+            val noteIds = reportNotes!!.results().map { it.group(2) }.distinct().toList()
+
+            val targetUserUrl =
+                "https://" + MisskeyAdminTools.getInstance().config.authentication!!.instanceHostname + "/@" + report.targetUser?.username
+            val accountPageCapture = if (noteIds.isEmpty()) TakeCaptureRequest(targetUserUrl, true) else null
+            var accountPageCaptureUrl: String? = null
+            accountPageCapture?.let {
+                captureRequestManager?.addRequest(it, object : ApiResponseHandler {
+                    override fun onSuccess(response: ApiResponse?) {
+                        GSON.fromJson(response!!.body, Map::class.java)["url"]?.let { url ->
+                            accountPageCaptureUrl = url.toString()
+                        }
+                    }
+
+                    override fun onFailure(response: ApiResponse?) {
+                        logger.error(
+                            """
+                                        An error occurred while taking a screenshot of the user's account page.
+                                        Response Code: {}, Body: {}
+                                        """.trimIndent(), response!!.statusCode, response.body
+                        )
+                    }
+                })
+            }?.join()
+
+            val embedBuilder = EmbedBuilder()
+            embedBuilder.setTitle("通報 / Report")
+            embedBuilder.setColor(Color.getHSBColor(0.03f, 0.39f, 0.49f))
+            embedBuilder.setDescription(report.comment)
+            StringUtils.defaultIfEmpty(
+                report.reporter!!.username, "null"
+            )?.let {
+                embedBuilder.addField(
+                    "通報者 / Reporter", it, true
+                )
+            }
+
+            StringUtils.defaultIfEmpty(
+                report.targetUser?.username, "null"
+            )?.let {
+                accountPageCaptureUrl?.let { url ->
+                    embedBuilder.addField(
+                        "通報されたユーザー / Reported User",
+                        "[${it}]($targetUserUrl) [魚拓]($accountPageCaptureUrl)",
+                        true
+                    )
+                } ?: embedBuilder.addField(
+                    "通報されたユーザー / Reported User",
+                    "[${it}]($targetUserUrl)",
+                    true
+                )
+            }
+
+            StringUtils.defaultIfEmpty(
+                report.createdAt, "N/A"
+            )?.let {
+                embedBuilder.addField(
+                    "通報された日時 / Reported Date", it, true
+                )
+            }
+
+            StringUtils.defaultIfEmpty(
+                convertCategoryToHumanReadable(report.category), "N/A"
+            )?.let {
+                embedBuilder.addField(
+                    "通報カテゴリー / Report Category", it, true
+                )
+            }
+
+            for (noteInfo in noteIds) {
+                val noteUrl =
+                    "https://" + MisskeyAdminTools.getInstance().config.authentication!!.instanceHostname + "/notes/" + noteInfo
+                val noteCapture = TakeCaptureRequest(noteUrl, false)
+                var noteCaptureUrl: String? = null
+                captureRequestManager?.addRequest(noteCapture, object : ApiResponseHandler {
+                    override fun onSuccess(response: ApiResponse?) {
+                        GSON.fromJson(response!!.body, Map::class.java)["url"]?.let { url ->
+                            noteCaptureUrl = url.toString()
+                        }
+                    }
+
+                    override fun onFailure(response: ApiResponse?) {
+                        logger.error(
+                            """
+                                                    An error occurred while taking a screenshot of the note.
+                                                    Response Code: {}, Body: {}
+                                                    """.trimIndent(), response!!.statusCode, response.body
+                        )
+                    }
+                })?.join()
+                embedBuilder.addField(
+                    "通報された投稿 / Reported Note",
+                    "[${noteInfo}]($noteUrl) [魚拓]($noteCaptureUrl)",
+                    true
+                )
+            }
+            embedBuilder.setFooter("通報 ID: " + report.id)
+
+            discordApi.getTextChannelById(targetReportChannel)
+                ?.sendMessageEmbeds(embedBuilder.build())
+                ?.queue { result ->
+                    logger.debug("Report message sent. ID: " + result.id)
+
+
+                    result.editMessageComponents(getMainMenu(report.id!!)).queue()
+
+                    val reportContext = ReportContext(
+                        report.id,
+                        result.idLong,
+                        report.targetUserID!!,
+                        noteIds
+                    )
+                    try {
+                        reportStore.addReport(reportContext)
+                    } catch (e: SQLException) {
+                        logger.error(
+                            "An error occurred while adding the report.", e
+                        )
+                    }
+                }
+
+            report.targetUser?.username?.let { userStore.registerUser(it) } // 通報されたユーザーがNullになることはないはず。
+        }
     }
 
     fun shutdown() {
@@ -230,6 +299,7 @@ class NewReportWatcher(
         } catch (e: InterruptedException) {
             logger.error("An interruption occurred while waiting for the end.", e)
         }
+        captureRequestManager?.shutdown()
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
@@ -250,9 +320,9 @@ class NewReportWatcher(
             }) {
             event.hook.sendMessage(
                 """
-                        あなたはこのアクションを実行する権限を持っていません。
-                        You do not have permission to perform this action.
-                        """.trimIndent()
+                あなたはこのアクションを実行する権限を持っていません。
+                You do not have permission to perform this action.
+                """.trimIndent()
             ).setEphemeral(true).queue()
             return
         }
@@ -271,7 +341,7 @@ class NewReportWatcher(
                         event.hook.sendMessage("ユーザーが見つかりませんでした。 / User not found.").queue()
                         targetUser = ""
                     } else {
-                        MisskeyAdminTools.getInstance().moduleLogger.error(
+                        logger.error(
                             """
                             An error occurred while getting the user information.
                             Response Code: {}, Body: {}
@@ -345,16 +415,16 @@ class NewReportWatcher(
                     override fun onFailure(response: ApiResponse?) {
                         event.hook.sendMessage(
                             """
-                                凍結に失敗しました。時間を置いて実行してください。
-                                Failed to freeze the user. Please try again later.
-                                """.trimIndent()
+                            凍結に失敗しました。時間を置いて実行してください。
+                            Failed to freeze the user. Please try again later.
+                            """.trimIndent()
                         ).setEphemeral(true).queue()
 
-                        MisskeyAdminTools.getInstance().moduleLogger.error(
+                        logger.error(
                             """
-                                An error occurred while freezing the user.
-                                Response Code: {}, Body: {}
-                                """.trimIndent(), response!!.statusCode, response.body
+                            An error occurred while freezing the user.
+                            Response Code: {}, Body: {}
+                            """.trimIndent(), response!!.statusCode, response.body
                         )
                     }
                 }).join()
@@ -405,7 +475,7 @@ class NewReportWatcher(
                             """.trimIndent()
                         ).setEphemeral(true).queue()
 
-                        MisskeyAdminTools.getInstance().moduleLogger.error(
+                        logger.error(
                             """
                             An error occurred while silencing the user.
                             Response Code: {}, Body: {}
@@ -485,7 +555,7 @@ class NewReportWatcher(
 
             override fun onFailure(response: ApiResponse?) {
                 if (response!!.statusCode != 500) {
-                    MisskeyAdminTools.getInstance().moduleLogger.error(
+                    logger.error(
                         """
                         An error occurred while closing the report.
                         Response Code: {}, Body: {}
@@ -501,8 +571,8 @@ class NewReportWatcher(
                 override fun onSuccess(response: ApiResponse?) {
                     event.hook.sendMessage(
                         """
-                    通報のクローズに失敗しました。手動にて処理してください。
-                    Report close failed. Please process it manually.
+                        通報のクローズに失敗しました。手動にて処理してください。
+                        Report close failed. Please process it manually.
                     """.trimIndent()
                     ).setEphemeral(true).queue()
                 }
@@ -559,6 +629,7 @@ class NewReportWatcher(
 
     companion object {
         private val MAPPER = ObjectMapper()
+        private val GSON = Gson()
         private val NOTE_URL_PATTERN =
             Pattern.compile("https://([a-zA-Z0-9]+\\.[a-zA-Z0-9]+)/notes/([a-zA-Z0-9]+)")
     }

@@ -20,6 +20,7 @@ data class ReportWatcherConfig(
     val targetReportChannel: Long? = null,
     val silenceRoleId: String? = null,
     val excludeDiscordRoles: List<Long>? = null,
+    val gyotakuAddress: String? = null,
     val warningSender: WarningSenderOptions? = null,
 )
 

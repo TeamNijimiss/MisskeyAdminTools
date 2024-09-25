@@ -1,6 +1,7 @@
 targetReportChannel: 0 # Target report channel ID
 silenceRoleId: "" # Silence role ID
 excludeDiscordRoles: [ ] # ID of the Disocrd role that cannot perform the freezing operation
+gyotakuAddress: ""
 warningSender:
   warningTemplate: |-
     **【投稿ガイドライン違反に関する警告】**
