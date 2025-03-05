@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Nafu Satsuki
+ * Copyright 2025 Nafu Satsuki
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,10 @@
  */
 
 plugins {
-    kotlin("jvm") version "2.0.0"
-    id("com.github.johnrengelman.shadow") version "7.1.2"
-    id("org.jetbrains.kotlin.plugin.lombok") version "2.0.0"
-    id("io.freefair.lombok") version "8.6"
+    kotlin("jvm") version "2.1.10"
+    id("com.gradleup.shadow") version "8.3.6"
+    id("org.jetbrains.kotlin.plugin.lombok") version "2.1.10"
+    id("io.freefair.lombok") version "8.12.2.1"
 }
 
 group = "app.nijimiss"
@@ -51,8 +51,8 @@ dependencies {
 
     // Logger
     implementation("org.slf4j:slf4j-api:2.0.13")
-    implementation("ch.qos.logback:logback-core:1.5.6")
-    implementation("ch.qos.logback:logback-classic:1.5.6")
+    implementation("ch.qos.logback:logback-core:1.5.17")
+    implementation("ch.qos.logback:logback-classic:1.5.17")
 
     // ClientLib
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
@@ -61,29 +61,29 @@ dependencies {
     compileOnly("com.github.NeoBotDevelopment:NeoBotApi:2.3.0")
 
     // Ktor
-    implementation("io.ktor:ktor-server-core:2.3.11")
-    implementation("io.ktor:ktor-server-netty:2.3.11")
-    implementation("io.ktor:ktor-server-content-negotiation:2.3.11")
-    implementation("io.ktor:ktor-serialization-jackson:2.3.11")
+    implementation("io.ktor:ktor-server-core:3.1.1")
+    implementation("io.ktor:ktor-server-netty:3.1.1")
+    implementation("io.ktor:ktor-server-content-negotiation:2.1.1")
+    implementation("io.ktor:ktor-serialization-jackson:3.1.1")
 
     // Unirest
     implementation("com.konghq:unirest-java:3.14.5")
 
     // Parser
-    implementation("com.google.code.gson:gson:2.10.1")
-    implementation("com.fasterxml.jackson.core:jackson-core:2.17.1")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.17.1")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.1")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.17.1")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.1")
+    implementation("com.google.code.gson:gson:2.12.1")
+    implementation("com.fasterxml.jackson.core:jackson-core:2.18.3")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.18.3")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.3")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.18.3")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.3")
 
     // Commons Library
-    implementation("commons-io:commons-io:2.16.0")
-    implementation("commons-codec:commons-codec:1.16.1")
-    implementation("org.apache.commons:commons-lang3:3.14.0")
-    implementation("org.apache.tika:tika-core:2.9.2")
+    implementation("commons-io:commons-io:2.18.0")
+    implementation("commons-codec:commons-codec:1.18.0")
+    implementation("org.apache.commons:commons-lang3:3.17.0")
+    implementation("org.apache.tika:tika-core:3.1.0")
 
-    implementation("org.xerial:sqlite-jdbc:3.45.3.0")
+    implementation("org.xerial:sqlite-jdbc:3.49.1.0")
 }
 
 tasks.test {
@@ -97,5 +97,5 @@ tasks.processResources {
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }
