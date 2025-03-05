@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Nafu Satsuki
+ * Copyright 2025 Nafu Satsuki
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,11 @@ import java.util.concurrent.TimeUnit
 class ApiRequestManager(private val apiHostName: String, private val accessToken: String) {
     private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
     private val logging: HttpLoggingInterceptor = HttpLoggingInterceptor(LoggerFactory.getLogger(this.javaClass))
-    private val httpClient: OkHttpClient = OkHttpClient.Builder().addInterceptor(logging).build()
+    private val httpClient: OkHttpClient = OkHttpClient.Builder()
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .addInterceptor(logging)
+        .build()
     private val requestQueues: Queue<ApiRequestQueue>
 
     init {
